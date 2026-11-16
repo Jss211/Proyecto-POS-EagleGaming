@@ -34,13 +34,13 @@ const AuthForm: React.FC<AuthFormProps> = ({
   const [view, setView] = React.useState<AuthView>(initialView)
 
   return (
-    <div className="relative min-h-screen min-h-[100svh] flex items-center justify-center px-4 py-8 sm:py-10 font-gaming selection:bg-[#ed1450]/30">
+    <div className="relative w-full min-h-screen min-h-[100svh] flex items-center justify-center px-4 py-8 sm:py-10 font-gaming selection:bg-[#ed1450]/30">
       <motion.div
         layout
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-md rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-950/95 p-5 sm:p-8 shadow-2xl"
+        className="relative z-10 w-full max-w-[520px] rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-950/95 p-5 sm:p-8 shadow-2xl"
       >
         <Logo companyName={companyName} logoUrl={logoUrl} />
 
