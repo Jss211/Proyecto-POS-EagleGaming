@@ -1,26 +1,38 @@
+import { useEffect, useState } from "react"
+import { MotionConfig } from "framer-motion"
 import AuthForm from "@/components/ui/auth-form"
 
 export function App() {
+  const [reducedMotion, setReducedMotion] = useState(true)
+  const [videoFailed, setVideoFailed] = useState(false)
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const updatePreference = () => setReducedMotion(preference.matches)
+    updatePreference()
+    preference.addEventListener("change", updatePreference)
+    return () => preference.removeEventListener("change", updatePreference)
+  }, [])
+
   return (
-    <div className="relative min-h-screen w-full bg-zinc-950 overflow-hidden flex items-center justify-center">
-      {/* 
-        Espacio preparado para video de fondo:
-        Cuando tengas tu archivo de video (ej. /videos/eagle-bg.mp4), puedes descomentar la siguiente etiqueta:
-      */}
-      {/* 
-      <video
+    <MotionConfig reducedMotion="user">
+    <main className="login-screen fixed inset-0 isolate w-full overflow-x-hidden overflow-y-auto bg-zinc-950">
+      {!reducedMotion && !videoFailed && <video
         autoPlay
         loop
         muted
         playsInline
-        className="absolute inset-0 h-full w-full object-cover opacity-30 z-0 pointer-events-none"
+        preload="metadata"
+        aria-hidden="true"
+        tabIndex={-1}
+        onError={() => setVideoFailed(true)}
+        className="fixed inset-0 -z-20 h-full w-full object-cover pointer-events-none"
       >
-        <source src="/videos/eagle-bg.mp4" type="video/mp4" />
-      </video> 
-      */}
+        <source src="/videos/download%20(2).mp4" type="video/mp4" onError={() => setVideoFailed(true)} />
+      </video>}
 
       {/* Degradado ambiental sutil para gaming (funciona excelente con o sin video) */}
-      <div className="absolute inset-0 bg-radial-gradient pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-zinc-950/80 to-zinc-950 z-0" />
+      <div aria-hidden="true" className="fixed inset-0 -z-10 pointer-events-none bg-zinc-950/60 bg-[radial-gradient(ellipse_at_center,_transparent,_rgba(9,9,11,0.65))]" />
 
       {/* Formulario de Login */}
       <div className="relative z-10 w-full">
@@ -44,7 +56,8 @@ export function App() {
           }}
         />
       </div>
-    </div>
+    </main>
+    </MotionConfig>
   )
 }
 

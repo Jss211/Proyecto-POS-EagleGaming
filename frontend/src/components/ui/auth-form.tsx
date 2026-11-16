@@ -34,13 +34,13 @@ const AuthForm: React.FC<AuthFormProps> = ({
   const [view, setView] = React.useState<AuthView>(initialView)
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 font-gaming selection:bg-blue-600/30">
+    <div className="relative min-h-screen min-h-[100svh] flex items-center justify-center px-4 py-8 sm:py-10 font-gaming selection:bg-[#ed1450]/30">
       <motion.div
         layout
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-md rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-950/90 p-7 sm:p-8 shadow-2xl backdrop-blur-xl"
+        className="relative z-10 w-full max-w-md rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-950/95 p-5 sm:p-8 shadow-2xl"
       >
         <Logo companyName={companyName} logoUrl={logoUrl} />
 
@@ -62,7 +62,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
                   <button
                     type="button"
                     onClick={() => setView("register")}
-                    className="font-bold text-blue-600 hover:text-blue-500 hover:underline dark:text-blue-400"
+                    className="font-bold text-[#ed1450] hover:text-[#d01046] hover:underline dark:text-[#ff4d7d]"
                   >
                     Crear una aquí.
                   </button>
@@ -95,7 +95,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
                   <button
                     type="button"
                     onClick={() => setView("login")}
-                    className="font-bold text-blue-600 hover:text-blue-500 hover:underline dark:text-blue-400"
+                    className="font-bold text-[#ed1450] hover:text-[#d01046] hover:underline dark:text-[#ff4d7d]"
                   >
                     Inicia sesión.
                   </button>
@@ -168,9 +168,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const Button: React.FC<ButtonProps> = ({ children, className, ...props }) => (
   <button
-    className={`rounded-lg bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 px-4 py-2.5 font-bold uppercase italic tracking-wider text-white shadow-lg shadow-blue-500/25 
-    ring-2 ring-blue-500/40 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 
-    transition-all hover:scale-[1.01] hover:shadow-blue-500/40 active:scale-[0.98] ${className || ""}`}
+    className={`rounded-lg bg-[#ed1450] hover:bg-[#d01046] px-4 py-2.5 font-bold uppercase italic tracking-wider text-white shadow-lg shadow-[#ed1450]/25
+    ring-2 ring-[#ed1450]/40 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950
+    transition-all hover:scale-[1.01] hover:shadow-[#ed1450]/40 active:scale-[0.98] ${className || ""}`}
     {...props}
   >
     {children}
@@ -209,8 +209,8 @@ const SocialButtons: React.FC<{
     <button
       type="button"
       onClick={onGoogleSignIn}
-      className="relative flex w-full items-center justify-center gap-3 rounded-lg border border-zinc-300 dark:border-zinc-700 
-      bg-zinc-50 dark:bg-zinc-900 px-4 py-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200 
+      className="relative flex w-full items-center justify-center gap-3 rounded-lg border border-zinc-300 dark:border-zinc-700
+      bg-zinc-50 dark:bg-zinc-900 px-4 py-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200
       transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.99] shadow-sm font-sans"
     >
       <GoogleIcon />
@@ -220,11 +220,11 @@ const SocialButtons: React.FC<{
     <button
       type="button"
       onClick={onPinSignIn}
-      className="relative flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 
-      bg-white dark:bg-zinc-900/60 px-4 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-400 
+      className="relative flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800
+      bg-white dark:bg-zinc-900/60 px-4 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-400
       transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 active:scale-[0.99]"
     >
-      <KeyRound size={15} className="text-blue-500" />
+      <KeyRound size={15} className="text-[#ed1450]" />
       <span>Acceso con PIN de Terminal / Cajero</span>
     </button>
   </div>
@@ -263,7 +263,7 @@ const LoginForm: React.FC<{
           htmlFor="login-email"
           className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400"
         >
-          <Mail size={13} className="text-blue-500" />
+          <Mail size={13} className="text-[#ed1450]" />
           Correo electrónico
         </label>
         <input
@@ -273,26 +273,26 @@ const LoginForm: React.FC<{
           onChange={(e) => setEmail(e.target.value)}
           required
           placeholder="tu.correo@eaglegaming.com"
-          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 
+          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700
           bg-white dark:bg-zinc-900/80 px-3.5 py-2 text-sm text-zinc-800 dark:text-zinc-200
           placeholder-zinc-400 dark:placeholder-zinc-500 font-sans
-          transition-all focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          transition-all focus:border-[#ed1450] focus:outline-none focus:ring-2 focus:ring-[#ed1450]/20"
         />
       </div>
 
       <div>
-        <div className="mb-1.5 flex items-end justify-between">
+        <div className="mb-1.5 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
           <label
             htmlFor="login-password"
             className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400"
           >
-            <Lock size={13} className="text-blue-500" />
+            <Lock size={13} className="text-[#ed1450]" />
             Contraseña
           </label>
           <button
             type="button"
             onClick={onForgotPasswordClick}
-            className="text-xs font-medium text-blue-600 hover:text-blue-500 hover:underline dark:text-blue-400 font-sans"
+            className="text-xs font-medium text-[#ed1450] hover:text-[#d01046] hover:underline dark:text-[#ff4d7d] font-sans"
           >
             ¿Olvidaste tu contraseña?
           </button>
@@ -305,10 +305,10 @@ const LoginForm: React.FC<{
             onChange={(e) => setPassword(e.target.value)}
             required
             placeholder="••••••••••••"
-            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 
+            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700
             bg-white dark:bg-zinc-900/80 px-3.5 py-2 pr-10 text-sm text-zinc-800 dark:text-zinc-200
             placeholder-zinc-400 dark:placeholder-zinc-500 font-sans
-            transition-all focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            transition-all focus:border-[#ed1450] focus:outline-none focus:ring-2 focus:ring-[#ed1450]/20"
           />
           <button
             type="button"
@@ -371,7 +371,7 @@ const RegisterForm: React.FC<{
           ¡Cuenta creada con éxito!
         </h2>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 font-sans max-w-xs mx-auto">
-          Bienvenido a Eagle Gaming, <span className="font-bold text-blue-500">{name}</span>. Ya puedes iniciar sesión con tus credenciales.
+          Bienvenido a Eagle Gaming, <span className="font-bold text-[#ed1450]">{name}</span>. Ya puedes iniciar sesión con tus credenciales.
         </p>
         <Button onClick={onBackToLogin} className="w-full">
           Ir al Inicio de Sesión
@@ -393,7 +393,7 @@ const RegisterForm: React.FC<{
           htmlFor="register-name"
           className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400"
         >
-          <User size={13} className="text-blue-500" />
+          <User size={13} className="text-[#ed1450]" />
           Nombre completo o Gamertag
         </label>
         <input
@@ -403,10 +403,10 @@ const RegisterForm: React.FC<{
           onChange={(e) => setName(e.target.value)}
           required
           placeholder="Ej: JordanPro / Alex R."
-          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 
+          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700
           bg-white dark:bg-zinc-900/80 px-3.5 py-2 text-sm text-zinc-800 dark:text-zinc-200
           placeholder-zinc-400 dark:placeholder-zinc-500 font-sans
-          transition-all focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          transition-all focus:border-[#ed1450] focus:outline-none focus:ring-2 focus:ring-[#ed1450]/20"
         />
       </div>
 
@@ -415,7 +415,7 @@ const RegisterForm: React.FC<{
           htmlFor="register-email"
           className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400"
         >
-          <Mail size={13} className="text-blue-500" />
+          <Mail size={13} className="text-[#ed1450]" />
           Correo electrónico
         </label>
         <input
@@ -425,10 +425,10 @@ const RegisterForm: React.FC<{
           onChange={(e) => setEmail(e.target.value)}
           required
           placeholder="tu.correo@eaglegaming.com"
-          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 
+          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700
           bg-white dark:bg-zinc-900/80 px-3.5 py-2 text-sm text-zinc-800 dark:text-zinc-200
           placeholder-zinc-400 dark:placeholder-zinc-500 font-sans
-          transition-all focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          transition-all focus:border-[#ed1450] focus:outline-none focus:ring-2 focus:ring-[#ed1450]/20"
         />
       </div>
 
@@ -437,7 +437,7 @@ const RegisterForm: React.FC<{
           htmlFor="register-password"
           className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400"
         >
-          <Lock size={13} className="text-blue-500" />
+          <Lock size={13} className="text-[#ed1450]" />
           Contraseña
         </label>
         <div className="relative">
@@ -448,10 +448,10 @@ const RegisterForm: React.FC<{
             onChange={(e) => setPassword(e.target.value)}
             required
             placeholder="Mínimo 6 caracteres"
-            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 
+            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700
             bg-white dark:bg-zinc-900/80 px-3.5 py-2 pr-10 text-sm text-zinc-800 dark:text-zinc-200
             placeholder-zinc-400 dark:placeholder-zinc-500 font-sans
-            transition-all focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            transition-all focus:border-[#ed1450] focus:outline-none focus:ring-2 focus:ring-[#ed1450]/20"
           />
           <button
             type="button"
@@ -468,7 +468,7 @@ const RegisterForm: React.FC<{
           htmlFor="register-confirm"
           className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400"
         >
-          <Lock size={13} className="text-blue-500" />
+          <Lock size={13} className="text-[#ed1450]" />
           Confirmar Contraseña
         </label>
         <input
@@ -478,10 +478,10 @@ const RegisterForm: React.FC<{
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
           placeholder="Repite tu contraseña"
-          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 
+          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700
           bg-white dark:bg-zinc-900/80 px-3.5 py-2 text-sm text-zinc-800 dark:text-zinc-200
           placeholder-zinc-400 dark:placeholder-zinc-500 font-sans
-          transition-all focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          transition-all focus:border-[#ed1450] focus:outline-none focus:ring-2 focus:ring-[#ed1450]/20"
         />
       </div>
 
@@ -521,12 +521,12 @@ const ForgotPasswordForm: React.FC<{
   if (sent) {
     return (
       <div className="py-6 text-center space-y-4">
-        <CheckCircle2 size={48} className="mx-auto text-blue-500 animate-pulse" />
+        <CheckCircle2 size={48} className="mx-auto text-[#ed1450] animate-pulse" />
         <h2 className="text-lg font-bold uppercase italic text-zinc-900 dark:text-zinc-100">
           ¡Enlace Enviado!
         </h2>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 font-sans max-w-xs mx-auto">
-          Hemos enviado un correo a <span className="font-bold text-blue-400">{email}</span> con las instrucciones para restablecer tu contraseña.
+          Hemos enviado un correo a <span className="font-bold text-[#ff4d7d]">{email}</span> con las instrucciones para restablecer tu contraseña.
         </p>
         <Button onClick={onBackToLogin} className="w-full">
           Volver al Inicio de Sesión
@@ -542,7 +542,7 @@ const ForgotPasswordForm: React.FC<{
           htmlFor="forgot-email"
           className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400"
         >
-          <Mail size={13} className="text-blue-500" />
+          <Mail size={13} className="text-[#ed1450]" />
           Correo registrado
         </label>
         <input
@@ -552,10 +552,10 @@ const ForgotPasswordForm: React.FC<{
           onChange={(e) => setEmail(e.target.value)}
           required
           placeholder="tu.correo@eaglegaming.com"
-          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 
+          className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700
           bg-white dark:bg-zinc-900/80 px-3.5 py-2 text-sm text-zinc-800 dark:text-zinc-200
           placeholder-zinc-400 dark:placeholder-zinc-500 font-sans
-          transition-all focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          transition-all focus:border-[#ed1450] focus:outline-none focus:ring-2 focus:ring-[#ed1450]/20"
         />
       </div>
 
