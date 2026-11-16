@@ -1,0 +1,159 @@
+// Esquema Prisma para Eagle Gaming POS
+// Conectado a PostgreSQL en Supabase
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ----------------------------------------------------
+// 1. Usuarios y Perfiles (Cajeros, Admins, Clientes)
+// ----------------------------------------------------
+enum Role {
+  ADMIN
+  CAJERO
+  SUPERVISOR
+  CLIENTE
+}
+
+model Profile {
+  id          String   @id // Coincide con auth.users.id de Supabase
+  email       String   @unique
+  fullName    String?
+  role        Role     @default(CAJERO)
+  pinTerminal String?  // PIN de 4 dígitos para inicio de turno rápido
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shifts CashRegisterShift[]
+  sales  Sale[]
+
+  @@map("profiles")
+}
+
+// ----------------------------------------------------
+// 2. Catálogo de Productos e Inventario
+// ----------------------------------------------------
+model Product {
+  id          String   @id @default(uuid())
+  barcode     String   @unique // Código de barras para lector láser
+  sku         String?  @unique
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  costPrice   Decimal  @db.Decimal(10, 2)
+  stock       Int      @default(0)
+  minStock    Int      @default(5)
+  category    String   @default("GENERAL")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  saleItems         SaleItem[]
+  inventoryMovements InventoryMovement[]
+
+  @@map("products")
+}
+
+// Movimientos de Kardex / Auditoría de inventario
+enum MovementType {
+  ENTRADA_COMPRA
+  SALIDA_VENTA
+  AJUSTE_INVENTARIO
+  MERMA
+}
+
+model InventoryMovement {
+  id        String       @id @default(uuid())
+  productId String
+  type      MovementType
+  quantity  Int
+  stockBefore Int
+  stockAfter  Int
+  reason    String?
+  createdAt DateTime     @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("inventory_movements")
+}
+
+// ----------------------------------------------------
+// 3. Control de Caja y Turnos (Arqueo de Efectivo)
+// ----------------------------------------------------
+enum ShiftStatus {
+  ABIERTO
+  CERRADO
+}
+
+model CashRegisterShift {
+  id             String      @id @default(uuid())
+  cashierId      String
+  initialAmount  Decimal     @db.Decimal(10, 2) // Con cuánto dinero abrió caja
+  finalAmount    Decimal?    @db.Decimal(10, 2) // Cuánto dinero contó al cerrar
+  expectedAmount Decimal?    @db.Decimal(10, 2) // Lo que el sistema calculó
+  difference     Decimal?    @db.Decimal(10, 2) // Sobrante (+) o Faltante (-)
+  status         ShiftStatus @default(ABIERTO)
+  openedAt       DateTime    @default(now())
+  closedAt       DateTime?
+
+  cashier Profile @relation(fields: [cashierId], references: [id])
+  sales   Sale[]
+
+  @@map("cash_register_shifts")
+}
+
+// ----------------------------------------------------
+// 4. Ventas y Tickets de Cobro
+// ----------------------------------------------------
+enum PaymentMethod {
+  EFECTIVO
+  TARJETA
+  YAPE
+  PLIN
+  MIXTO
+}
+
+enum SaleStatus {
+  COMPLETADA
+  ANULADA
+}
+
+model Sale {
+  id            String        @id @default(uuid())
+  folio         String        @unique // Ej: T001-0000452
+  cashierId     String
+  shiftId       String?
+  total         Decimal       @db.Decimal(10, 2)
+  amountPaid    Decimal       @db.Decimal(10, 2)
+  change        Decimal       @default(0) @db.Decimal(10, 2) // Vuelto
+  paymentMethod PaymentMethod @default(EFECTIVO)
+  status        SaleStatus    @default(COMPLETADA)
+  createdAt     DateTime      @default(now())
+
+  cashier Profile            @relation(fields: [cashierId], references: [id])
+  shift   CashRegisterShift? @relation(fields: [shiftId], references: [id])
+  items   SaleItem[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  productId String
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("sale_items")
+}
