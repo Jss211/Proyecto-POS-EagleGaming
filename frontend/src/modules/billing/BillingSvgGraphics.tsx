@@ -32,7 +32,7 @@ export function DemoQrSvg({ value, size = 132 }: { value: string; size?: number 
       viewBox={`0 0 ${qrData.total} ${qrData.total}`}
       role="img"
       aria-label="Código QR escaneable del comprobante"
-      className="block rounded-lg border border-zinc-200 bg-white"
+      className="billing-qr-graphic block rounded-lg border border-zinc-200 bg-white"
       shapeRendering="crispEdges"
     >
       <rect width={qrData.total} height={qrData.total} fill="#ffffff" />
@@ -101,7 +101,7 @@ export function DemoBarcodeSvg({ value }: { value: string }) {
   }, [value])
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="billing-barcode-graphic flex flex-col items-center">
       <svg
         viewBox={`0 0 ${barcode.width} 42`}
         className="h-10 w-full max-w-[230px] rounded bg-white"

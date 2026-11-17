@@ -1,0 +1,129 @@
+/* These rules only style the isolated receipt copy; the on-screen preview is untouched. */
+#billing-ticket-print-root {
+  display: none;
+  width: 72mm;
+  max-width: 72mm;
+  height: auto;
+  margin: 0;
+  padding: 0;
+}
+
+#billing-ticket-print-root.billing-ticket-measuring {
+  display: flow-root;
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#billing-ticket-print-root,
+#billing-ticket-print-root * {
+  box-sizing: border-box;
+  color: black !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  animation: none !important;
+  transition: none !important;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+#billing-ticket-print-root .billing-ticket-paper {
+  display: flow-root;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible;
+  font-size: 9pt;
+  line-height: 1.35;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+#billing-ticket-print-root :is(p, dd, dt, li, span) {
+  overflow-wrap: anywhere;
+}
+
+#billing-ticket-print-root .truncate {
+  min-width: 0;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+#billing-ticket-print-root :is(.billing-ticket-paper, li, svg, .billing-ticket-codes) {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+#billing-ticket-print-root svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  flex-shrink: 0;
+}
+
+#billing-ticket-print-root .billing-qr-graphic {
+  width: 36mm;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+#billing-ticket-print-root .billing-barcode-graphic {
+  width: 100%;
+  max-width: 230px;
+}
+
+#billing-ticket-print-root .billing-barcode-graphic svg {
+  width: 100%;
+  height: auto;
+}
+
+#billing-ticket-print-root .billing-ticket-disclaimer {
+  font-size: 8pt;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: normal;
+}
+
+@media print {
+  /* The print job adds a named @page with the measured height, not a fixed 200 mm.
+     The physical driver may still impose its own supported form size. */
+  @page eagle-thermal-ticket {
+    size: auto;
+    margin: 4mm;
+  }
+
+  body.billing-ticket-printing {
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  body.billing-ticket-printing > :not(#billing-ticket-print-root) {
+    display: none !important;
+  }
+
+  body.billing-ticket-printing > #billing-ticket-print-root {
+    display: flow-root !important;
+    position: static !important;
+    visibility: visible !important;
+    page: eagle-thermal-ticket;
+    break-before: auto;
+    break-after: auto;
+    break-inside: avoid;
+    page-break-before: auto;
+    page-break-after: auto;
+    page-break-inside: avoid;
+  }
+}

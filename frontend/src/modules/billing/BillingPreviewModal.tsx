@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import "./billing-print.css"
+import { prepareTicketPrint, type TicketPrintJob } from "./billing-ticket-print"
 import { AnimatePresence, motion } from "framer-motion"
 import {
   Ban,
@@ -27,6 +29,8 @@ import {
 } from "./BillingSvgGraphics"
 
 export type PreviewFormat = "ticket" | "a4"
+
+const ticketPrintInstructions = "Selecciona LOPEN POS-80, escala 100 % y desactiva encabezados y pies. Se solicita un ancho de 80 mm y una longitud calculada para este ticket. Si Windows mantiene el papel de 80 × 200 mm, puede volver a dividirlo: CSS no puede forzar papel continuo en el controlador. Generic / Text Only no garantiza el logo, el QR ni las barras; para conservar el diseño se requiere un controlador gráfico compatible. El corte automático depende del equipo y de su integración."
 
 function buildQrPayload(invoice: DemoInvoice, emitter: BillingEmitterConfig): string {
   const igvLabel = formatIgvPercent(invoice.igvRate ?? emitter.igvRate)
@@ -64,12 +68,45 @@ export default function BillingPreviewModal({
   const [copied, setCopied] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [printDone, setPrintDone] = useState(false)
+  const [ticketPrintNotice, setTicketPrintNotice] = useState<string | null>(null)
+  const ticketRef = useRef<HTMLDivElement>(null)
+  const printJobRef = useRef<TicketPrintJob | null>(null)
+  const preparingPrintRef = useRef<symbol | null>(null)
 
   useEffect(() => {
+    const finishPrint = () => {
+      if (!printJobRef.current) return
+      const height = printJobRef.current.pageHeightMm.toLocaleString("es-PE")
+      printJobRef.current.dispose()
+      printJobRef.current = null
+      document.body.classList.remove("billing-ticket-printing")
+      setPrinting(false)
+      setTicketPrintNotice(`El cuadro de impresión se cerró. Formato solicitado: 80 × ${height} mm. El navegador no confirma si el ticket se imprimió o si cancelaste la impresión. ${ticketPrintInstructions}`)
+    }
+    const media = window.matchMedia("print")
+    const onMediaChange = (event: MediaQueryListEvent) => { if (!event.matches) finishPrint() }
+    window.addEventListener("afterprint", finishPrint)
+    media.addEventListener("change", onMediaChange)
+    return () => {
+      window.removeEventListener("afterprint", finishPrint)
+      media.removeEventListener("change", onMediaChange)
+      preparingPrintRef.current = null
+      printJobRef.current?.dispose()
+      printJobRef.current = null
+      document.body.classList.remove("billing-ticket-printing")
+    }
+  }, [])
+
+  useEffect(() => {
+    preparingPrintRef.current = null
+    printJobRef.current?.dispose()
+    printJobRef.current = null
+    document.body.classList.remove("billing-ticket-printing")
     setFormat(initialFormat)
     setCopied(false)
     setPrinting(false)
     setPrintDone(false)
+    setTicketPrintNotice(null)
   }, [invoice, initialFormat])
 
   useEffect(() => {
@@ -115,6 +152,37 @@ export default function BillingPreviewModal({
       setPrintDone(true)
       window.setTimeout(() => setPrintDone(false), 2600)
     }, 950)
+  }
+
+  const handlePrint = async () => {
+    if (printing || printJobRef.current || preparingPrintRef.current) return
+    // Preserve the existing A4 demonstration; only thermal tickets use physical printing.
+    if (format !== "ticket") { handleSimulatePrint(); return }
+    if (!invoice || !ticketRef.current) return
+    const request = Symbol("ticket-print")
+    preparingPrintRef.current = request
+    setPrinting(true)
+    setPrintDone(false)
+    setTicketPrintNotice("Preparando el ticket completo a su ancho imprimible, sin modificar la venta DEMO.")
+    let job: TicketPrintJob | undefined
+    try {
+      job = await prepareTicketPrint(ticketRef.current)
+      // Closing/changing the preview while fonts load must not print an old receipt.
+      if (preparingPrintRef.current !== request) { job.dispose(); return }
+      preparingPrintRef.current = null
+      printJobRef.current = job
+      document.body.classList.add("billing-ticket-printing")
+      setTicketPrintNotice(`Formato solicitado: 80 × ${job.pageHeightMm.toLocaleString("es-PE")} mm. ${ticketPrintInstructions}`)
+      window.print()
+    } catch {
+      job?.dispose()
+      if (preparingPrintRef.current !== request && printJobRef.current !== job) return
+      preparingPrintRef.current = null
+      printJobRef.current = null
+      document.body.classList.remove("billing-ticket-printing")
+      setPrinting(false)
+      setTicketPrintNotice("No se pudo abrir la impresión del navegador. No se confirmó ninguna impresión; puedes volver a intentarlo.")
+    }
   }
 
   return (
@@ -206,7 +274,7 @@ export default function BillingPreviewModal({
 
             {/* Print feedback bar */}
             <AnimatePresence>
-              {(printing || printDone) && (
+              {format === "a4" && (printing || printDone) && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
@@ -221,12 +289,8 @@ export default function BillingPreviewModal({
                         <Check size={15} aria-hidden="true" />
                       )}
                       {printing
-                        ? format === "ticket"
-                          ? "Enviando a impresora térmica DEMO (80mm)..."
-                          : "Generando vista de impresión A4 DEMO..."
-                        : format === "ticket"
-                          ? "Impresión térmica DEMO completada correctamente."
-                          : "Documento A4 DEMO preparado para impresión."}
+                        ? "Generando vista de impresión A4 DEMO..."
+                        : "Documento A4 DEMO preparado para impresión."}
                     </span>
                     <span className="rounded bg-white px-2 py-0.5 text-[10px] uppercase tracking-wider text-zinc-500">
                       Simulación local
@@ -235,6 +299,7 @@ export default function BillingPreviewModal({
                 </motion.div>
               )}
             </AnimatePresence>
+            {format === "ticket" && ticketPrintNotice && <p role="status" className="border-b border-zinc-200 bg-white px-5 py-3 text-xs leading-5 text-zinc-600">{ticketPrintNotice}</p>}
 
             {/* Preview Canvas */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-8">
@@ -245,7 +310,7 @@ export default function BillingPreviewModal({
                     initial={{ opacity: 0, y: 16 }}
                     animate={{
                       opacity: 1,
-                      y: printing ? [0, -8, 0] : 0,
+                      y: 0,
                     }}
                     exit={{ opacity: 0, y: -12 }}
                     transition={{ duration: 0.28 }}
@@ -253,7 +318,7 @@ export default function BillingPreviewModal({
                   >
                     <div className="drop-shadow-[0_14px_28px_rgba(20,20,25,0.12)]">
                       <ThermalTearEdgeSvg />
-                      <div className="relative bg-white px-6 py-5 font-mono text-xs text-zinc-800">
+                      <div ref={ticketRef} className="billing-ticket-paper relative bg-white px-6 py-5 font-mono text-xs text-zinc-800">
                         {invoice.status === "ANULADO" && (
                           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                             <span className="-rotate-12 rounded-lg border-2 border-[#ed1450]/40 bg-white/85 px-4 py-1.5 font-gaming text-2xl font-bold tracking-widest text-[#ed1450]/70">
@@ -348,7 +413,7 @@ export default function BillingPreviewModal({
                           </div>
                         </div>
 
-                        <div className="mt-4 flex flex-col items-center border-t border-dashed border-zinc-300 pt-4 text-center">
+                        <div className="billing-ticket-codes mt-4 flex flex-col items-center border-t border-dashed border-zinc-300 pt-4 text-center">
                           <DemoQrSvg value={buildQrPayload(invoice, emitter)} size={136} />
                           <p className="mt-2 break-all text-[9px] text-zinc-400">
                             Hash DEMO: {invoice.hashCode}
@@ -357,8 +422,8 @@ export default function BillingPreviewModal({
                             <DemoBarcodeSvg value={invoice.number} />
                           </div>
                           <p className="mt-3 text-[10px] leading-4 text-zinc-500">{emitter.ticketFooter}</p>
-                          <p className="mt-2 rounded bg-zinc-100 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">
-                            Comprobante demostrativo · Sin validez tributaria
+                          <p className="billing-ticket-disclaimer mt-2 rounded bg-zinc-100 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">
+                            COMPROBANTE DEMOSTRATIVO - SIN VALIDEZ TRIBUTARIA
                           </p>
                         </div>
                       </div>
@@ -558,12 +623,12 @@ export default function BillingPreviewModal({
                 </button>
                 <button
                   type="button"
-                  onClick={handleSimulatePrint}
+                  onClick={handlePrint}
                   disabled={printing}
                   className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#ed1450] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#d01046] disabled:opacity-60"
                 >
                   <Printer size={15} aria-hidden="true" />
-                  {printing ? "Imprimiendo..." : format === "ticket" ? "Imprimir ticket DEMO" : "Imprimir A4 DEMO"}
+                  {printing ? format === "ticket" ? preparingPrintRef.current ? "Preparando impresión..." : "Cuadro de impresión abierto..." : "Imprimiendo..." : format === "ticket" ? "Imprimir ticket DEMO" : "Imprimir A4 DEMO"}
                 </button>
               </div>
             </div>
