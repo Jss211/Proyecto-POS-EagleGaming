@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingCart, Package, Boxes, Users, Truck, ShoppingBag, Wallet, Receipt, ShieldCheck, Wrench, ChartNoAxesCombined, Settings, type LucideIcon } from "lucide-react"
+import { LayoutDashboard, ShoppingCart, Package, Boxes, Truck, ShoppingBag, Wallet, Receipt, ShieldCheck, Wrench, ChartNoAxesCombined, Settings, type LucideIcon } from "lucide-react"
 
 export interface ErpModule {
   id: string
@@ -13,7 +13,6 @@ export const navigationGroups: { title: string; modules: ErpModule[] }[] = [
   ] },
   { title: "Comercial", modules: [
     { id: "ventas", title: "Ventas", icon: ShoppingCart, description: "Punto de venta y gestión de ventas." },
-    { id: "clientes", title: "Clientes", icon: Users, description: "Directorio y gestión de clientes." },
     { id: "facturacion", title: "Facturación", icon: Receipt, description: "Gestión de comprobantes de venta." },
   ] },
   { title: "Productos y abastecimiento", modules: [
