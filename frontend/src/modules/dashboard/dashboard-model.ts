@@ -1,6 +1,6 @@
 import { demoActivities, demoCustomers, demoProducts, demoSales, type DashboardSale } from "./dashboard-demo"
 
-export type Period = "today" | "week" | "month" | "custom"
+export type Period = "week" | "month" | "year"
 export interface DateRange { start: string; end: string }
 export const currency = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" })
 export const percent = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 })
@@ -17,17 +17,18 @@ export function shiftDate(value: string, days: number) {
   date.setUTCDate(date.getUTCDate() + days)
   return date.toISOString().slice(0, 10)
 }
-export function isDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
-  const date = new Date(`${value}T12:00:00Z`)
-  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+export function shiftMonth(value: string, months: number) {
+  const date = new Date(value.slice(0, 7) + "-01T12:00:00Z")
+  date.setUTCMonth(date.getUTCMonth() + months)
+  return date.toISOString().slice(0, 10)
 }
-export function validRange(range: DateRange) {
-  return isDate(range.start) && isDate(range.end) && range.start <= range.end
-}
-export function periodRange(period: Period, today: string, custom: DateRange): DateRange {
-  if (period === "custom") return custom
-  return { start: shiftDate(today, period === "today" ? 0 : period === "week" ? -6 : -29), end: today }
+export function periodRange(period: Period, today: string): DateRange {
+  if (period === "week") {
+    const weekday = new Date(`${today}T12:00:00Z`).getUTCDay()
+    const start = shiftDate(today, -((weekday + 6) % 7))
+    return { start, end: shiftDate(start, 6) }
+  }
+  return { start: period === "year" ? "2026-01-01" : `${today.slice(0, 4)}-01-01`, end: `${today.slice(0, 4)}-12-31` }
 }
 export function rangeDays(range: DateRange) {
   return Math.round((Date.parse(`${range.end}T12:00:00Z`) - Date.parse(`${range.start}T12:00:00Z`)) / 86400000) + 1
@@ -37,7 +38,7 @@ export function saleTotal(sale: DashboardSale) {
 }
 export interface TopProduct { id: string; name: string; category: string; units: number; revenueCents: number }
 
-export function summarizeDashboard(range: DateRange) {
+export function summarizeDashboard(range: DateRange, period: Period = "week") {
   // ISO dates are local business dates; timestamps in these fixtures explicitly use Lima's UTC-05.
   const within = (date: string) => date.slice(0, 10) >= range.start && date.slice(0, 10) <= range.end
   const sales = demoSales.filter(sale => within(sale.occurredAt)).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
@@ -47,19 +48,16 @@ export function summarizeDashboard(range: DateRange) {
   const profitCents = revenueCents - costCents
   const margin = revenueCents === 0 ? 0 : profitCents / revenueCents * 100
   const days = rangeDays(range)
-  const previous = { start: shiftDate(range.start, -days), end: shiftDate(range.start, -1) }
+  const previous = { start: period === "week" ? shiftDate(range.start, -days) : shiftMonth(range.start, -12 * (Number(range.end.slice(0, 4)) - Number(range.start.slice(0, 4)) + 1)), end: shiftDate(range.start, -1) }
   const previousRevenueCents = demoSales.filter(sale => sale.occurredAt.slice(0, 10) >= previous.start && sale.occurredAt.slice(0, 10) <= previous.end).reduce((total, sale) => total + saleTotal(sale), 0)
   const growth = previousRevenueCents === 0 ? null : (revenueCents - previousRevenueCents) / previousRevenueCents * 100
-  // At most 7 chronological buckets, even for a multi-year custom range.
-  const bucketCount = Math.min(7, days)
+  const bucketCount = period === "year" ? Math.max(0, Number(range.end.slice(0, 4)) - 2026 + 1) : period === "month" ? 12 : 7
   const buckets = Array.from({ length: bucketCount }, (_, index) => {
-    const start = shiftDate(range.start, Math.floor(index * days / bucketCount))
-    const end = shiftDate(range.start, Math.floor((index + 1) * days / bucketCount) - 1)
-    const formatter = new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "2-digit", timeZone: "UTC" })
-    const short = (date: string) => formatter.format(new Date(`${date}T12:00:00Z`))
-    const label = start === end ? short(start) : `${short(start)}–${short(end)}`
-    const amount = sales.filter(sale => sale.occurredAt.slice(0, 10) >= start && sale.occurredAt.slice(0, 10) <= end).reduce((total, sale) => total + saleTotal(sale), 0) / 100
-    return { day: label, amount }
+    const start = period === "week" ? shiftDate(range.start, index) : shiftMonth(range.start, index * (period === "year" ? 12 : 1))
+    const end = period === "week" ? start : shiftDate(shiftMonth(start, period === "year" ? 12 : 1), -1)
+    const label = period === "year" ? start.slice(0, 4) : new Intl.DateTimeFormat("es-PE", { ...(period === "month" ? { month: "long" as const } : { weekday: "long" as const }), timeZone: "UTC" }).format(new Date(start + "T12:00:00Z"))
+    const amountCents = sales.filter(sale => sale.occurredAt.slice(0, 10) >= start && sale.occurredAt.slice(0, 10) <= end).reduce((total, sale) => total + saleTotal(sale), 0)
+    return { day: label, start, end, amountCents, amount: amountCents / 100 }
   })
   const topProducts: TopProduct[] = demoProducts.map(product => {
     const items = sales.flatMap(sale => sale.items).filter(item => item.productId === product.id)

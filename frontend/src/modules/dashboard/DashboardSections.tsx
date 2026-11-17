@@ -5,9 +5,9 @@ import { formatDateTime, money, percent, type DashboardSummary, type TopProduct 
 
 export function TopProducts({ products }: { products: TopProduct[] }) {
   return <Panel title="Top 5 productos más vendidos" subtitle="Productos de ejemplo · Ordenados por unidades del período">
-    {products.length === 0 ? <EmptyDashboardState /> : <ol className="space-y-5">{products.map((product, index) => <li key={product.id}>
+    {products.length === 0 ? <EmptyDashboardState /> : <ol className="space-y-5">{products.map((product, index) => <li key={product.id} className="group relative rounded-lg" tabIndex={0} aria-label={`${product.name}: ${product.units} unidades, ${money(product.revenueCents)}`}><span className="eagle-detail-tooltip">{product.name}: {product.units} unidades · {money(product.revenueCents)} en ventas.</span>
       <div className="flex items-start gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-xs font-bold text-[#cf1045]">{index + 1}</span><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-zinc-800">{product.name}</p><p className="mt-1 text-xs text-zinc-500">{product.category}</p></div><div className="shrink-0 text-right"><p className="text-sm font-semibold">{product.units} uds.</p><p className="mt-1 text-xs text-zinc-500">{money(product.revenueCents)}</p></div></div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100" aria-hidden="true"><div className="h-full rounded-full bg-[#ed1450]" style={{ width: `${product.units / products[0].units * 100}%` }} /></div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100" aria-hidden="true"><div className="eagle-product-bar h-full rounded-full bg-[#ed1450]" style={{ width: `${product.units / products[0].units * 100}%` }} /></div>
     </li>)}</ol>}
   </Panel>
 }

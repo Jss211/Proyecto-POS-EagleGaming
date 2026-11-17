@@ -5,7 +5,7 @@ import DashboardDateFilter, { type DashboardFilter } from "./DashboardDateFilter
 import { SalesChart, PaymentsChart } from "./DashboardCharts"
 import { TopProducts, Profitability, CashStatus, AfterSales, RecentActivity } from "./DashboardSections"
 import { demoLowStock } from "./dashboard-demo"
-import { formatDateTime, money, periodRange, saleTotal, shiftDate, summarizeDashboard, todayInLima, validRange, type DashboardSummary } from "./dashboard-model"
+import { formatDateTime, money, periodRange, saleTotal, summarizeDashboard, todayInLima, type DashboardSummary } from "./dashboard-model"
 
 function DashboardContent({ summary, rangeLabel }: { summary: DashboardSummary; rangeLabel: string }) {
   const metrics = [
@@ -58,21 +58,19 @@ function DashboardContent({ summary, rangeLabel }: { summary: DashboardSummary; 
 
 export default function DashboardPage() {
   const today = todayInLima()
-  const [filter, setFilter] = useState<DashboardFilter>(() => ({ period: "week", custom: { start: shiftDate(today, -6), end: today } }))
-  const range = periodRange(filter.period, today, filter.custom)
-  const valid = validRange(range) && range.end <= today
+  const [filter, setFilter] = useState<DashboardFilter>(() => ({ period: "week" }))
+  const range = periodRange(filter.period, today)
   const dateFormat = new Intl.DateTimeFormat("es-PE", { dateStyle: "short", timeZone: "UTC" })
   const formatDate = (date: string) => dateFormat.format(new Date(`${date}T12:00:00Z`))
-  const rangeLabel = valid ? `${formatDate(range.start)} al ${formatDate(range.end)}` : "Rango no válido"
-  const summary = valid ? summarizeDashboard(range) : null
+  const rangeLabel = `${formatDate(range.start)} al ${formatDate(range.end)}`
+  const summary = summarizeDashboard(range, filter.period)
 
   return <div className="space-y-6">
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div><h2 className="font-gaming text-2xl font-bold text-zinc-900">Resumen del negocio</h2><p className="mt-1 text-sm text-zinc-500">Un vistazo al rendimiento de tu tienda gaming.</p><span className="mt-3 inline-block rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-[#cf1045]">DEMO · Registros de ejemplo, sin conexión a Supabase</span></div>
-      <DashboardDateFilter filter={filter} today={today} invalid={!valid} onChange={setFilter} />
+      <DashboardDateFilter filter={filter} onChange={setFilter} />
     </div>
-    <p aria-live="polite" className="text-xs text-zinc-500">Período seleccionado: {rangeLabel} · Hora de Lima. Datos disponibles: 18/10/2026 al 16/11/2026.</p>
-    {!valid && <p id="dashboard-range-error" role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">Selecciona ambas fechas válidas, con inicio anterior o igual al final y sin fechas futuras.</p>}
+    <p aria-live="polite" className="text-xs text-zinc-500">Período seleccionado: {rangeLabel} · {filter.period === "week" ? "Semana de lunes a domingo" : filter.period === "month" ? "Enero a diciembre del año actual" : "Años desde 2026"} · Hora de Lima. Datos disponibles: 18/10/2026 al 16/11/2026.</p>
     {summary && <DashboardContent summary={summary} rangeLabel={rangeLabel} />}
     <p className="text-xs leading-5 text-zinc-500">Todos los importes, clientes, horarios, cantidades, productos y movimientos son de demostración. No se consultan ni registran operaciones en Supabase.</p>
   </div>

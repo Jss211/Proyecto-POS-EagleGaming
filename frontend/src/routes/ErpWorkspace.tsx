@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Construction } from "lucide-react"
 import ErpLayout, { type ErpAccount } from "@/components/layout/ErpLayout"
 import DashboardPage from "@/modules/dashboard/DashboardPage"
+import SalesPage from "@/modules/sales/SalesPage"
 import { erpModules } from "./erp-navigation"
 
 function currentModuleId() {
@@ -29,7 +30,7 @@ export default function ErpWorkspace({ account }: { account?: ErpAccount }) {
   }, [selectedModule, account])
 
   return <ErpLayout selectedModule={selectedModule} account={account}>
-    {moduleId === "dashboard" ? <DashboardPage /> : <section className="flex min-h-[380px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center">
+    {moduleId === "dashboard" ? <DashboardPage /> : moduleId === "ventas" ? <SalesPage /> : <section className="flex min-h-[380px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center">
       <span className="rounded-2xl bg-rose-50 p-4 text-[#ed1450]"><Construction size={32} aria-hidden="true" /></span>
       <span className="mt-6 text-xs font-semibold uppercase tracking-widest text-[#cf1045]">{selectedModule ? "Próximamente" : "Ruta no disponible"}</span>
       <h2 className="mt-3 font-gaming text-2xl font-bold">{selectedModule?.title ?? "Módulo no encontrado"}</h2>

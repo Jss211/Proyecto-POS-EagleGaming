@@ -1,0 +1,32 @@
+import { useId } from "react"
+import { ShoppingCart, Trash2, Minus, Plus, ArrowRight, Eye } from "lucide-react"
+import { formatSalesMoney, type CartAction, type CartSummary } from "./sales-model"
+import type { DemoProduct } from "./sales-demo"
+import type { RecordTotals } from "./sales-records"
+
+export function CartTotals({ summary }: { summary: RecordTotals }) {
+  return <dl className="space-y-3 text-sm">
+    <div className="flex justify-between gap-2"><dt className="text-zinc-500">Subtotal</dt><dd className="font-medium tabular-nums">{formatSalesMoney(summary.subtotalCents)}</dd></div>
+    <div className="flex justify-between gap-2"><dt className="text-zinc-500">Descuento</dt><dd className="font-medium tabular-nums">− {formatSalesMoney(summary.discountCents)}</dd></div>
+    <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-zinc-100 pt-4"><dt className="font-semibold text-zinc-900">Total a pagar</dt><dd className="text-2xl font-bold tracking-tight text-[#cf1045] tabular-nums">{formatSalesMoney(summary.totalCents)}</dd></div>
+  </dl>
+}
+
+export default function SalesCart({ summary, discount, onDiscountChange, onAction, onClear, onCheckout, onDetails, canClear = summary.lines.length > 0, cartId = "sales-cart", actionLabel = "Continuar al cobro", actionNote = "Registro local DEMO · No procesa pagos reales." }: { summary: CartSummary; discount: string; onDiscountChange: (value: string) => void; onAction: (action: CartAction) => void; onClear: () => void; onCheckout: () => void; onDetails: (product: DemoProduct) => void; canClear?: boolean; cartId?: string; actionLabel?: string; actionNote?: string }) {
+  const id = useId()
+  return <section id={cartId} tabIndex={-1} aria-labelledby={`${id}-title`} className="min-w-0 scroll-mt-4 self-start rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
+    <div className="flex flex-wrap items-center justify-between gap-3"><h3 id={`${id}-title`} className="flex items-center gap-2 font-semibold text-zinc-900"><ShoppingCart size={19} className="text-[#ed1450]" aria-hidden="true" />Carrito <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs text-[#cf1045]">{summary.units}</span></h3><button type="button" onClick={onClear} disabled={!canClear} className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-[#cf1045] disabled:cursor-not-allowed disabled:opacity-40"><Trash2 size={14} aria-hidden="true" />Vaciar</button></div>
+    <p className="mt-1 text-xs leading-5 text-zinc-500">Selección local · No reserva stock</p>
+    {!summary.lines.length ? <div className="my-5 rounded-xl bg-zinc-50 px-4 py-8 text-center"><ShoppingCart size={30} className="mx-auto text-zinc-300" aria-hidden="true" /><p className="mt-3 text-sm font-medium">Tu carrito está vacío</p><p className="mt-2 text-xs leading-5 text-zinc-500">Agrega productos del catálogo para explorar el punto de venta.</p></div> : <ul className="my-4 divide-y divide-zinc-100">{summary.lines.map(line => <li key={line.id} className="py-4">
+      <div className="flex items-start justify-between gap-2"><div className="min-w-0"><h4 className="break-words text-sm font-semibold leading-5">{line.name}</h4><p className="mt-1 text-xs text-zinc-500">{formatSalesMoney(line.priceCents)} / unidad</p></div><button type="button" onClick={() => onAction({ type: "remove", productId: line.id })} aria-label={`Eliminar ${line.name}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-[#cf1045]"><Trash2 size={16} aria-hidden="true" /></button></div>
+      <button type="button" onClick={() => onDetails(line)} aria-label={`Ver detalles de ${line.name}`} className="inline-flex min-h-11 items-center gap-2 text-xs text-zinc-500 hover:text-[#cf1045]"><Eye size={15} aria-hidden="true" />Ver detalles</button>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><div className="inline-flex items-center rounded-lg border border-zinc-200"><button type="button" disabled={line.quantity <= 1} onClick={() => onAction({ type: "decrease", productId: line.id })} aria-label={`Disminuir cantidad de ${line.name}`} className="sales-quantity-button"><Minus size={14} aria-hidden="true" /></button><span className="min-w-8 text-center text-sm font-semibold tabular-nums" aria-label={`${line.quantity} unidades de ${line.name}`}>{line.quantity}</span><button type="button" disabled={line.quantity >= line.available} onClick={() => onAction({ type: "increase", productId: line.id })} aria-label={`Aumentar cantidad de ${line.name}`} className="sales-quantity-button"><Plus size={14} aria-hidden="true" /></button></div><p className="text-sm font-semibold tabular-nums">{formatSalesMoney(line.totalCents)}</p></div>
+      {line.quantity >= line.available && <p className="mt-2 text-[11px] text-[#cf1045]">{line.stockVerified === false ? "Stock DEMO no verificable. Reintenta la lectura del historial." : line.available === 0 ? "Agotado · 0 disponibles DEMO." : line.quantity > line.available ? `Solo ${line.available} disponibles DEMO. Reduce la cantidad.` : "Disponibilidad DEMO máxima alcanzada."}</p>}
+    </li>)}</ul>}
+    <div className="mb-5 border-t border-zinc-100 pt-4"><label htmlFor={`${id}-discount`} className="text-xs font-medium text-zinc-600">Descuento de demostración (S/)<input id={`${id}-discount`} type="text" inputMode="decimal" autoComplete="off" value={discount} disabled={!summary.lines.length} onChange={event => onDiscountChange(event.target.value)} aria-invalid={!!summary.discountError} aria-describedby={summary.discountError ? `${id}-error` : `${id}-help`} placeholder="0.00" className="sales-input mt-1" /></label><p id={`${id}-help`} className="mt-2 text-[11px] leading-5 text-zinc-500">Importe fijo en soles, aplicado solo a esta selección.</p>{summary.discountError && <p id={`${id}-error`} role="alert" className="mt-2 text-xs text-[#cf1045]">{summary.discountError}</p>}</div>
+    {summary.cartError && <p role="alert" className="mb-4 text-xs text-[#cf1045]">{summary.cartError} Puedes vaciar la selección para empezar de nuevo.</p>}
+    <CartTotals summary={summary} />
+    <button type="button" onClick={onCheckout} disabled={!summary.lines.length || !!summary.discountError || !!summary.cartError} className="sales-button sales-button-primary mt-5 w-full">{actionLabel}<ArrowRight size={17} aria-hidden="true" /></button>
+    <p className="mt-3 text-center text-[11px] leading-5 text-zinc-500">{actionNote}</p>
+  </section>
+}

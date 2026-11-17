@@ -173,3 +173,33 @@ body {
     transition: none !important;
   }
 }
+
+.eagle-chart-value { transition: x 500ms ease, y 500ms ease, width 500ms ease, height 500ms ease, opacity 500ms ease; }
+.eagle-chart-segment { transition: stroke-dasharray 500ms ease, stroke-dashoffset 500ms ease, stroke-width 500ms ease; }
+.eagle-chart-bar, .eagle-chart-segment { cursor: pointer; }
+.eagle-chart-bar:focus-visible, .eagle-chart-segment:focus-visible { outline: 2px solid #ed1450; outline-offset: 2px; }
+.eagle-chart-tooltip { position: fixed; z-index: 1000; width: max-content; max-width: min(240px, calc(100vw - 16px)); padding: 10px 12px; border: 1px solid #3f3f46; border-radius: 8px; background: #18181b; color: white; box-shadow: 0 6px 20px rgb(0 0 0 / 18%); font-size: 12px; line-height: 20px; overflow-wrap: anywhere; pointer-events: none; }
+.eagle-detail-tooltip { display: none; position: absolute; z-index: 10; right: 0; top: 100%; width: min(240px, 65vw); padding: 10px; border-radius: 8px; background: #18181b; color: white; font-size: 12px; line-height: 20px; text-align: left; pointer-events: none; }
+.group:hover > .eagle-detail-tooltip, .group:focus-within > .eagle-detail-tooltip { display: block; }
+.eagle-product-bar { transition: width 500ms ease; }
+@media (prefers-reduced-motion: reduce) {
+  .eagle-chart-value, .eagle-chart-segment, .eagle-product-bar { transition: none; }
+}
+.eagle-dashboard-card li > .eagle-detail-tooltip { top: auto; bottom: 100%; }
+
+@layer components {
+  .eagle-sales .sales-input {
+    @apply block min-h-11 w-full min-w-0 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm font-normal text-zinc-800 placeholder:text-zinc-400 disabled:bg-zinc-50 disabled:text-zinc-400;
+  }
+  .eagle-sales .sales-input.pl-9 { padding-left: 2.25rem; }
+  .eagle-sales .sales-button {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .eagle-sales .sales-button-primary { @apply bg-[#ed1450] text-white enabled:hover:bg-[#d01046]; }
+  .eagle-sales .sales-button-secondary { @apply border border-zinc-200 bg-white text-zinc-700 enabled:hover:border-rose-200 enabled:hover:bg-rose-50; }
+  .eagle-sales .sales-quantity-button { @apply flex h-11 w-11 items-center justify-center rounded-lg text-zinc-600 enabled:hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-30; }
+  .eagle-sales :is(button, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid #ed1450; outline-offset: 3px; }
+  .eagle-sales :is(input, textarea)[aria-invalid="true"] { border-color: #ed1450; }
+  .eagle-sales .sales-field { @apply block min-w-0 text-xs font-medium text-zinc-600; }
+  .eagle-sales .sales-dialog[open] { display: flex; flex-direction: column; }
+}
