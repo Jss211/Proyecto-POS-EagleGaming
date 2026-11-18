@@ -1,10 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { Eye, EyeOff, KeyRound, ArrowLeft, CheckCircle2, User, Mail, Lock } from "lucide-react"
+import { Eye, EyeOff, ArrowLeft, CheckCircle2, User, Mail, Lock } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 export type AuthView = "login" | "register" | "forgot"
+
+interface PasswordRecovery {
+  state: "checking" | "ready" | "invalid" | "connection-error"
+  onUpdate: (password: string) => Promise<string | null>
+}
 
 export interface AuthFormProps {
   /** Vista inicial (por defecto: 'login') */
@@ -16,9 +21,9 @@ export interface AuthFormProps {
   /** Callbacks de autenticación */
   onSignIn?: (credentials: { email: string; password: string }) => void
   onRegister?: (data: { name: string; email: string; password: string }) => void
-  onForgotPassword?: (email: string) => void
+  onForgotPassword?: (email: string) => void | Promise<void>
   onGoogleSignIn?: () => void
-  onPinSignIn?: () => void
+  recovery?: PasswordRecovery
 }
 
 const AuthForm: React.FC<AuthFormProps> = ({
@@ -29,9 +34,9 @@ const AuthForm: React.FC<AuthFormProps> = ({
   onRegister,
   onForgotPassword,
   onGoogleSignIn,
-  onPinSignIn,
+  recovery,
 }) => {
-  const [view, setView] = React.useState<AuthView>(initialView)
+  const [view, setView] = React.useState<AuthView | "reset">(recovery ? "reset" : initialView)
 
   return (
     <div className="relative w-full min-h-screen min-h-[100svh] flex items-center justify-center px-4 py-8 sm:py-10 font-gaming selection:bg-[#ed1450]/30">
@@ -69,7 +74,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
                 </p>
               </div>
 
-              <SocialButtons onGoogleSignIn={onGoogleSignIn} onPinSignIn={onPinSignIn} />
+              <GoogleSignInButton onClick={onGoogleSignIn} />
               <Divider />
               <LoginForm
                 onSignIn={onSignIn}
@@ -108,6 +113,9 @@ const AuthForm: React.FC<AuthFormProps> = ({
               />
             </motion.div>
           )}
+          {view === "reset" && recovery && (
+            <ResetPasswordForm key="reset" recovery={recovery} onRequestLink={() => setView("forgot")} />
+          )}
 
           {view === "forgot" && (
             <motion.div
@@ -128,7 +136,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
 
               <ForgotPasswordForm
                 onSubmitForgotPassword={onForgotPassword}
-                onBackToLogin={() => setView("login")}
+                onBackToLogin={() => recovery ? window.location.assign("/") : setView("login")}
               />
             </motion.div>
           )}
@@ -178,7 +186,7 @@ const Button: React.FC<ButtonProps> = ({ children, className, ...props }) => (
 )
 
 /* ==========================================================================
-   Botones Sociales (Google y PIN de Terminal)
+   Botones de acceso
    ========================================================================== */
 const GoogleIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -201,14 +209,11 @@ const GoogleIcon = () => (
   </svg>
 )
 
-const SocialButtons: React.FC<{
-  onGoogleSignIn?: () => void
-  onPinSignIn?: () => void
-}> = ({ onGoogleSignIn, onPinSignIn }) => (
-  <div className="space-y-2.5">
+function GoogleSignInButton({ onClick }: { onClick?: () => void }) {
+  return (
     <button
       type="button"
-      onClick={onGoogleSignIn}
+      onClick={onClick}
       className="relative flex w-full items-center justify-center gap-3 rounded-lg border border-zinc-300 dark:border-zinc-700
       bg-zinc-50 dark:bg-zinc-900 px-4 py-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200
       transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.99] shadow-sm font-sans"
@@ -216,19 +221,8 @@ const SocialButtons: React.FC<{
       <GoogleIcon />
       <span>Continuar con Google</span>
     </button>
-
-    <button
-      type="button"
-      onClick={onPinSignIn}
-      className="relative flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800
-      bg-white dark:bg-zinc-900/60 px-4 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-400
-      transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 active:scale-[0.99]"
-    >
-      <KeyRound size={15} className="text-[#ed1450]" />
-      <span>Acceso con PIN de Terminal / Cajero</span>
-    </button>
-  </div>
-)
+  )
+}
 
 const Divider: React.FC = () => (
   <div className="my-5 flex items-center gap-3">
@@ -504,18 +498,30 @@ const RegisterForm: React.FC<{
    Formulario 3: Recuperar Contraseña (Forgot Password)
    ========================================================================== */
 const ForgotPasswordForm: React.FC<{
-  onSubmitForgotPassword?: (email: string) => void
+  onSubmitForgotPassword?: (email: string) => void | Promise<void>
   onBackToLogin: () => void
 }> = ({ onSubmitForgotPassword, onBackToLogin }) => {
   const [email, setEmail] = React.useState("")
   const [sent, setSent] = React.useState(false)
+  const [submitting, setSubmitting] = React.useState(false)
+  const [error, setError] = React.useState("")
+  const inFlight = React.useRef(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (onSubmitForgotPassword) {
-      onSubmitForgotPassword(email)
+    if (inFlight.current || !onSubmitForgotPassword) return
+    inFlight.current = true
+    setSubmitting(true)
+    setError("")
+    try {
+      await onSubmitForgotPassword(email.trim())
+      setSent(true)
+    } catch {
+      setError("No se pudo solicitar el enlace. Vuelve a intentarlo en unos minutos.")
+    } finally {
+      inFlight.current = false
+      setSubmitting(false)
     }
-    setSent(true)
   }
 
   if (sent) {
@@ -523,10 +529,10 @@ const ForgotPasswordForm: React.FC<{
       <div className="py-6 text-center space-y-4">
         <CheckCircle2 size={48} className="mx-auto text-[#ed1450] animate-pulse" />
         <h2 className="text-lg font-bold uppercase italic text-zinc-900 dark:text-zinc-100">
-          ¡Enlace Enviado!
+          Solicitud recibida
         </h2>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 font-sans max-w-xs mx-auto">
-          Hemos enviado un correo a <span className="font-bold text-[#ff4d7d]">{email}</span> con las instrucciones para restablecer tu contraseña.
+          Si el correo está registrado, recibirás las instrucciones para restablecer tu contraseña.
         </p>
         <Button onClick={onBackToLogin} className="w-full">
           Volver al Inicio de Sesión
@@ -550,6 +556,7 @@ const ForgotPasswordForm: React.FC<{
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          readOnly={submitting}
           required
           placeholder="tu.correo@eaglegaming.com"
           className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700
@@ -559,8 +566,9 @@ const ForgotPasswordForm: React.FC<{
         />
       </div>
 
-      <Button type="submit" className="w-full mt-2">
-        Enviar Enlace de Recuperación
+      {error && <p role="alert" className="font-sans text-xs text-rose-700 dark:text-rose-300">{error}</p>}
+      <Button type="submit" className="w-full mt-2 disabled:opacity-60" disabled={submitting || !onSubmitForgotPassword}>
+        {submitting ? "Solicitando enlace..." : "Enviar Enlace de Recuperación"}
       </Button>
 
       <button
@@ -571,6 +579,119 @@ const ForgotPasswordForm: React.FC<{
         <ArrowLeft size={14} /> Cancelar y Volver
       </button>
     </form>
+  )
+}
+
+function ResetPasswordForm({ recovery, onRequestLink }: { recovery: PasswordRecovery; onRequestLink: () => void }) {
+  const [error, setError] = React.useState("")
+  const [submitting, setSubmitting] = React.useState(false)
+  const [saved, setSaved] = React.useState(false)
+  const [showPasswords, setShowPasswords] = React.useState(false)
+  const inFlight = React.useRef(false)
+
+  React.useEffect(() => {
+    if (!saved) return
+    const redirect = window.setTimeout(() => window.location.replace("/"), 5000)
+    return () => window.clearTimeout(redirect)
+  }, [saved])
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (inFlight.current || saved || recovery.state !== "ready") return
+    const form = event.currentTarget
+    const fields = new FormData(form)
+    const password = String(fields.get("password") ?? "")
+    if (password !== fields.get("confirmation")) {
+      setError("Las contraseñas no coinciden.")
+      return
+    }
+    if (Array.from(password).length < 6 || !password.trim()) {
+      setError("La contraseña debe tener al menos 6 caracteres y no puede contener solo espacios.")
+      return
+    }
+
+    inFlight.current = true
+    setError("")
+    setSubmitting(true)
+    try {
+      const message = await recovery.onUpdate(password)
+      if (message) {
+        setError(message)
+      } else {
+        form.reset()
+        setSaved(true)
+      }
+    } catch {
+      setError("No se pudo guardar la contraseña. Vuelve a intentarlo.")
+    } finally {
+      inFlight.current = false
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+      <h1 className="text-center text-xl font-bold uppercase italic tracking-wide text-zinc-900 dark:text-zinc-100">
+        Restablecer contraseña
+      </h1>
+      {saved ? (
+        <p role="status" className="text-center font-sans text-sm text-zinc-700 dark:text-zinc-200">
+          Contraseña actualizada. En unos segundos volverás al inicio de sesión.
+        </p>
+      ) : recovery.state === "checking" ? (
+        <p role="status" className="text-center font-sans text-sm text-zinc-600 dark:text-zinc-300">Validando el enlace de recuperación...</p>
+      ) : recovery.state !== "ready" ? (
+        <p role="alert" className="text-center font-sans text-sm text-rose-700 dark:text-rose-300">
+          {recovery.state === "connection-error"
+            ? "No se pudo conectar con Supabase para verificar el enlace. Comprueba tu conexión antes de solicitar otro enlace."
+            : "El enlace es inválido, venció o ya fue utilizado. Solicita un enlace nuevo para continuar."}
+        </p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {[
+            { name: "password", label: "Nueva contraseña" },
+            { name: "confirmation", label: "Confirmar contraseña" },
+          ].map(({ name, label }) => (
+            <label key={name} className="block text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+              {label}
+              <input
+                id={`reset-${name}`}
+                type={showPasswords ? "text" : "password"}
+                name={name}
+                autoComplete="new-password"
+                required
+                readOnly={submitting}
+                className="mt-1.5 w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2 font-sans text-sm text-zinc-800 focus:border-[#ed1450] focus:outline-none focus:ring-2 focus:ring-[#ed1450]/20 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-200"
+              />
+            </label>
+          ))}
+          <button
+            type="button"
+            onClick={() => setShowPasswords(value => !value)}
+            aria-controls="reset-password reset-confirmation"
+            className="flex items-center gap-1.5 font-sans text-xs font-semibold text-zinc-600 hover:underline dark:text-zinc-300"
+          >
+            {showPasswords ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+            {showPasswords ? "Ocultar contraseñas" : "Mostrar contraseñas"}
+          </button>
+          <p className="font-sans text-xs text-zinc-600 dark:text-zinc-400">Usa al menos 6 caracteres.</p>
+          {error && <p role="alert" className="font-sans text-xs text-rose-700 dark:text-rose-300">{error}</p>}
+          <Button type="submit" className="w-full disabled:opacity-60" disabled={submitting}>
+            {submitting ? "Guardando..." : "Guardar nueva contraseña"}
+          </Button>
+        </form>
+      )}
+      {!submitting && (
+        <div className="flex flex-wrap justify-center gap-4 font-sans text-xs font-semibold">
+          {!saved && (recovery.state === "invalid" || recovery.state === "connection-error" || error) && (
+            <button type="button" onClick={onRequestLink} className="text-[#cf1045] hover:underline dark:text-[#ff4d7d]">
+              Solicitar otro enlace
+            </button>
+          )}
+          <a href="/" className="text-zinc-600 hover:underline dark:text-zinc-300">Volver al inicio de sesión</a>
+        </div>
+      )}
+    </motion.div>
   )
 }
 

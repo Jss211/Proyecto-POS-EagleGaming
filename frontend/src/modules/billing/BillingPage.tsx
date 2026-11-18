@@ -24,6 +24,7 @@ import {
   formatIgvPercent,
   formatMoney,
   type BillingStatus,
+  type BillingEmitterConfig,
   type DemoInvoice,
   type DocumentType,
 } from "./billing-model"
@@ -51,7 +52,7 @@ const TYPE_FILTERS: { id: TypeFilter; label: string }[] = [
   { id: "NOTA_CREDITO", label: "Notas de crédito" },
 ]
 
-export default function BillingPage() {
+export default function BillingPage({ onEmitterChange }: { onEmitterChange: (emitter: BillingEmitterConfig) => void }) {
   const [store, setStore] = useState(loadBillingStore)
   const [tab, setTab] = useState<BillingTab>("comprobantes")
   const [query, setQuery] = useState("")
@@ -68,7 +69,8 @@ export default function BillingPage() {
 
   useEffect(() => {
     saveBillingStore(store)
-  }, [store])
+    onEmitterChange(store.emitter)
+  }, [store, onEmitterChange])
 
   const metrics = useMemo(() => {
     const activeSales = store.invoices.filter(
@@ -306,7 +308,7 @@ export default function BillingPage() {
               <p className="text-xs text-zinc-500">Participación sobre el volumen vigente emitido en modo DEMO.</p>
             </div>
             <span className="font-mono text-xs font-semibold text-zinc-500">
-              RUC Emisor: {store.emitter.ruc}
+              RUC DEMO: {store.emitter.ruc}
             </span>
           </div>
 

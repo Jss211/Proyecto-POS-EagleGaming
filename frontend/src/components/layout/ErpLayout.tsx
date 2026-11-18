@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { Bell, ChevronDown, Menu, Search, X, ExternalLink, LogOut } from "lucide-react"
+import { COMPANY_LOGO_URL } from "@/lib/company"
 import { navigationGroups, type ErpModule } from "@/routes/erp-navigation"
 import { initialOpenGroups, sidebarStorageKey, toggleOpenGroup } from "./sidebar-state"
 
@@ -8,12 +9,12 @@ export interface ErpAccount {
   onSignOut: () => Promise<void>
 }
 
-function Sidebar({ selectedId, preview, openGroups, onToggleGroup, onNavigate }: { selectedId: string; preview: boolean; openGroups: string[]; onToggleGroup: (title: string) => void; onNavigate?: () => void }) {
+function Sidebar({ tradeName, selectedId, preview, openGroups, onToggleGroup, onNavigate }: { tradeName: string; selectedId: string; preview: boolean; openGroups: string[]; onToggleGroup: (title: string) => void; onNavigate?: () => void }) {
   const sidebarId = useId()
   return <div className="flex min-h-full flex-col bg-[#141419] text-zinc-300">
     <a href="#/dashboard" onClick={onNavigate} className="flex items-center gap-3 border-b border-white/10 px-6 py-6" aria-label="EagleGaming, ir al dashboard">
-      <img src="/image.png" alt="" className="h-11 w-11 rounded-xl bg-white object-contain p-1" />
-      <span><span className="block font-gaming text-lg font-bold italic tracking-wide text-white">EAGLE GAMING</span><span className="text-[10px] uppercase tracking-[0.25em] text-zinc-500">POS / ERP</span></span>
+      <img src={COMPANY_LOGO_URL} alt="" className="h-11 w-11 rounded-xl bg-white object-contain p-1" />
+      <span><span className="block font-gaming text-lg font-bold italic tracking-wide text-white">{tradeName}</span><span className="text-[10px] uppercase tracking-[0.25em] text-zinc-500">POS / ERP</span></span>
     </a>
     <nav aria-label="Módulos del ERP" className="flex-1 space-y-3 px-3 py-5">
       {navigationGroups.map(group => <div key={group.title}>
@@ -25,7 +26,7 @@ function Sidebar({ selectedId, preview, openGroups, onToggleGroup, onNavigate }:
   </div>
 }
 
-export default function ErpLayout({ selectedModule, children, account }: { selectedModule?: ErpModule; children: ReactNode; account?: ErpAccount }) {
+export default function ErpLayout({ selectedModule, children, account, tradeName }: { tradeName: string; selectedModule?: ErpModule; children: ReactNode; account?: ErpAccount }) {
   const menuRef = useRef<HTMLDialogElement>(null)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
@@ -62,10 +63,10 @@ export default function ErpLayout({ selectedModule, children, account }: { selec
 
   return <div className="erp-preview min-h-screen bg-[#f6f6f9] text-zinc-800 lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
     <button type="button" onClick={() => { const content = document.getElementById("erp-content"); content?.focus(); content?.scrollIntoView() }} className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3">Saltar al contenido</button>
-    <aside className="sticky top-0 hidden h-screen overflow-y-auto lg:block"><Sidebar selectedId={selectedId} preview={!account} openGroups={openGroups} onToggleGroup={toggleGroup} /></aside>
+    <aside className="sticky top-0 hidden h-screen overflow-y-auto lg:block"><Sidebar tradeName={tradeName} selectedId={selectedId} preview={!account} openGroups={openGroups} onToggleGroup={toggleGroup} /></aside>
     <dialog ref={menuRef} aria-label="Navegación EagleGaming" className="m-0 h-[100dvh] max-h-none w-[min(320px,90vw)] max-w-none border-0 bg-[#141419] p-0 text-zinc-300 backdrop:bg-black/60">
       <button type="button" onClick={() => menuRef.current?.close()} className="absolute right-2 top-1 rounded-md p-2 text-white" aria-label="Cerrar menú"><X size={20} /></button>
-      <Sidebar selectedId={selectedId} preview={!account} openGroups={openGroups} onToggleGroup={toggleGroup} onNavigate={() => menuRef.current?.close()} />
+      <Sidebar tradeName={tradeName} selectedId={selectedId} preview={!account} openGroups={openGroups} onToggleGroup={toggleGroup} onNavigate={() => menuRef.current?.close()} />
     </dialog>
     <div className="min-w-0">
       <header className="border-b border-zinc-200 bg-white px-4 py-4 sm:px-8">

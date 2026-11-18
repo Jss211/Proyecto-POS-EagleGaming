@@ -7,17 +7,22 @@ import {
   signInWithEmail,
   signUpWithEmail,
   sendPasswordReset,
+  validateRecoveryLink,
+  updateRecoveredPassword,
 } from "@/lib/supabase"
 import type { User } from "@supabase/supabase-js"
+import type { EntryRoute } from "@/lib/entry-route"
 
 const ErpWorkspace = lazy(() => import("@/routes/ErpWorkspace"))
 
-export function App() {
+export function App({ route }: { route: EntryRoute }) {
+  const isPasswordRecoveryPage = route === "recovery"
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [sessionError, setSessionError] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
   const [videoFailed, setVideoFailed] = useState(false)
+  const [recoveryState, setRecoveryState] = useState<Awaited<ReturnType<typeof validateRecoveryLink>> | "checking">("checking")
 
   useEffect(() => {
     // 1. Detección de preferencia de movimiento reducido
@@ -25,6 +30,17 @@ export function App() {
     const updatePreference = () => setReducedMotion(preference.matches)
     updatePreference()
     preference.addEventListener("change", updatePreference)
+
+    if (isPasswordRecoveryPage) {
+      let active = true
+      void validateRecoveryLink().then(state => {
+        if (active) setRecoveryState(state)
+      })
+      return () => {
+        active = false
+        preference.removeEventListener("change", updatePreference)
+      }
+    }
 
     // 2. Verificar sesión activa inicial en Supabase
     let active = true
@@ -59,10 +75,10 @@ export function App() {
       preference.removeEventListener("change", updatePreference)
       subscription.unsubscribe()
     }
-  }, [])
+  }, [isPasswordRecoveryPage])
 
-  const isErpRoute = /^\/erp\/?$/.test(window.location.pathname)
-  const needsRedirect = !loading && (currentUser ? !isErpRoute : isErpRoute)
+  const isErpRoute = route === "erp"
+  const needsRedirect = !isPasswordRecoveryPage && !loading && (currentUser ? !isErpRoute : isErpRoute)
 
   useEffect(() => {
     if (!needsRedirect) return
@@ -75,7 +91,7 @@ export function App() {
     setCurrentUser(null)
   }
 
-  if (loading || needsRedirect) {
+  if (!isPasswordRecoveryPage && (loading || needsRedirect)) {
     return (
       <div role="status" className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400 font-gaming">
         <div className="flex flex-col items-center gap-3">
@@ -140,23 +156,14 @@ export function App() {
                 alert(`Error al registrar: ${err.message}`)
               }
             }}
-            onForgotPassword={async (email) => {
-              try {
-                await sendPasswordReset(email)
-              } catch (err: any) {
-                alert(`Error: ${err.message}`)
-              }
-            }}
+            onForgotPassword={sendPasswordReset}
+            recovery={isPasswordRecoveryPage ? { state: recoveryState, onUpdate: updateRecoveredPassword } : undefined}
             onGoogleSignIn={async () => {
               try {
                 await signInWithGoogle()
               } catch (err: any) {
                 alert(`Error con Google: ${err.message}`)
               }
-            }}
-            onPinSignIn={() => {
-              const pin = prompt("Ingrese su PIN de Cajero/Terminal:")
-              if (pin) alert(`PIN recibido para terminal POS: ${pin}`)
             }}
           />
         </div>

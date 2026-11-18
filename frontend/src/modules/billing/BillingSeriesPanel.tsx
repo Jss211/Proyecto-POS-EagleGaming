@@ -15,7 +15,7 @@ import {
   type BillingEmitterConfig,
   type SeriesConfig,
 } from "./billing-model"
-import { EagleCrestSvg } from "./BillingSvgGraphics"
+import { COMPANY_LOGO_URL } from "@/lib/company"
 
 const IGV_PRESETS = [
   { label: "0% (Exonerado)", rate: 0 },
@@ -144,13 +144,13 @@ export default function BillingSeriesPanel({
           className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6"
         >
           <div className="flex items-center gap-3">
-            <EagleCrestSvg className="h-10 w-10 shrink-0" />
+            <img src={COMPANY_LOGO_URL} alt="" className="h-10 w-10 shrink-0 object-contain" />
             <div>
               <h3 className="flex items-center gap-2 text-base font-bold text-zinc-900">
-                Datos fiscales del emisor
+                Datos empresariales DEMO
               </h3>
               <p className="text-xs text-zinc-500">
-                Aparecen en el encabezado de tus tickets 80mm y PDFs A4.
+                Verifica la razón social y el RUC antes de usar estos datos en producción.
               </p>
             </div>
           </div>
@@ -181,7 +181,7 @@ export default function BillingSeriesPanel({
               </label>
 
               <label className="block text-xs font-medium text-zinc-600">
-                RUC emisor
+                RUC DEMO
                 <input
                   type="text"
                   maxLength={11}
@@ -205,7 +205,17 @@ export default function BillingSeriesPanel({
             </label>
 
             <label className="block text-xs font-medium text-zinc-600">
-              Pie de comprobante (garantías / políticas)
+              Teléfono (opcional)
+              <input
+                type="tel"
+                value={draftEmitter.phone}
+                onChange={e => setDraftEmitter(prev => ({ ...prev, phone: e.target.value }))}
+                className="mt-1 block min-h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-800 focus:border-[#ed1450] focus:outline-none"
+              />
+            </label>
+
+            <label className="block text-xs font-medium text-zinc-600">
+              Garantía
               <textarea
                 rows={2}
                 value={draftEmitter.ticketFooter}

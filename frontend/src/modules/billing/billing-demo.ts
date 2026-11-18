@@ -1,7 +1,9 @@
+import { DEMO_COMPANY } from "@/lib/company"
 import {
   calculateTaxBreakdown,
   formatCorrelative,
   generateDemoHash,
+  IGV_RATE,
   type BillingEmitterConfig,
   type BillingLineItem,
   type BillingPaymentMethod,
@@ -49,12 +51,15 @@ export const DEMO_RUC_DIRECTORY: Record<string, { name: string; address: string 
 }
 
 const DEFAULT_EMITTER: BillingEmitterConfig = {
+  ...DEMO_COMPANY,
+  igvRate: IGV_RATE,
+}
+
+// Upgrade only the former sample values. Keep user-configured fields and all records.
+const LEGACY_EMITTER_DEFAULTS = {
   businessName: "EAGLE GAMING PERU S.A.C.",
-  tradeName: "EAGLE GAMING STORE",
-  ruc: "20609482711",
   address: "Av. Garcilaso de la Vega 1251, Tienda 3B-14, Lima",
   phone: "(01) 480-9240",
-  igvRate: 0.18,
   ticketFooter: "Conserve este comprobante para trámites de garantía técnica (12 meses en hardware).",
 }
 
@@ -278,7 +283,11 @@ export function loadBillingStore(): BillingStore {
     if (!raw) return createInitialBillingStore()
     const parsed = JSON.parse(raw) as Partial<BillingStore>
     if (parsed.version === 1 && Array.isArray(parsed.invoices) && Array.isArray(parsed.series) && parsed.emitter) {
-      return parsed as BillingStore
+      const emitter = { ...DEFAULT_EMITTER, ...parsed.emitter }
+      for (const field of Object.keys(LEGACY_EMITTER_DEFAULTS) as (keyof typeof LEGACY_EMITTER_DEFAULTS)[]) {
+        if (emitter[field] === LEGACY_EMITTER_DEFAULTS[field]) emitter[field] = DEFAULT_EMITTER[field]
+      }
+      return { ...(parsed as BillingStore), emitter }
     }
   } catch {
     // Fallback to clean demo state if localStorage is restricted or malformed.

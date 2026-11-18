@@ -1,3 +1,5 @@
+import type { CompanyDetails } from "@/lib/company"
+
 export type DocumentType = "FACTURA" | "BOLETA" | "TICKET" | "NOTA_CREDITO"
 
 export type BillingStatus = "EMITIDO" | "ANULADO" | "PENDIENTE"
@@ -47,14 +49,8 @@ export interface SeriesConfig {
   active: boolean
 }
 
-export interface BillingEmitterConfig {
-  businessName: string
-  tradeName: string
-  ruc: string
-  address: string
-  phone: string
+export interface BillingEmitterConfig extends CompanyDetails {
   igvRate: number
-  ticketFooter: string
 }
 
 export interface BillingStore {

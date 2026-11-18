@@ -1,14 +1,89 @@
-/* These rules only style the isolated receipt copy; the on-screen preview is untouched. */
-#billing-ticket-print-root {
-  display: none;
-  width: 72mm;
-  max-width: 72mm;
-  height: auto;
-  margin: 0;
-  padding: 0;
+/* The preview and the isolated print copy use the same content layout. */
+.billing-ticket-paper {
+  padding: 3mm min(5%, 4mm);
+  font-size: 9pt;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
-#billing-ticket-print-root.billing-ticket-measuring {
+.billing-ticket-logo {
+  display: block;
+  width: 25mm;
+  height: 25mm;
+  object-fit: contain;
+  margin: 0 auto 2mm;
+}
+
+.billing-ticket-section {
+  margin-top: 3mm;
+  padding-top: 2mm;
+  border-top: 1px dashed #a1a1aa;
+}
+
+.billing-ticket-row {
+  display: grid;
+  grid-template-columns: minmax(0, 9fr) minmax(0, 11fr);
+  align-items: baseline;
+  column-gap: 2mm;
+}
+
+.billing-ticket-row dd {
+  min-width: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.billing-ticket-details {
+  margin-top: 2.5mm;
+}
+
+.billing-ticket-item {
+  margin-top: 2mm;
+}
+
+.billing-ticket-item + .billing-ticket-item {
+  padding-top: 2mm;
+  border-top: 1px dotted #a1a1aa;
+}
+
+.billing-ticket-total {
+  margin-top: 1mm;
+  padding-top: 1mm;
+  border-top: 1px solid currentColor;
+}
+
+.billing-ticket-emphasis {
+  font-size: 1.1em;
+}
+
+.billing-ticket-paper .billing-qr-graphic {
+  width: 42mm;
+  max-width: 100%;
+  height: auto;
+}
+
+.billing-barcode-graphic {
+  width: 100%;
+  max-width: 72mm;
+  overflow-wrap: anywhere;
+}
+
+.billing-ticket-output {
+  display: none;
+  max-width: 100%;
+  background: white;
+  color: black;
+}
+
+.billing-ticket-output--preview {
+  width: 80mm;
+}
+
+.billing-ticket-output--raster {
+  width: 72mm;
+}
+
+.billing-ticket-output.billing-ticket-measuring {
   display: flow-root;
   position: fixed;
   top: 0;
@@ -17,97 +92,37 @@
   pointer-events: none;
 }
 
-#billing-ticket-print-root,
-#billing-ticket-print-root * {
-  box-sizing: border-box;
-  color: black !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-  animation: none !important;
-  transition: none !important;
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
-}
-
-#billing-ticket-print-root .billing-ticket-paper {
-  display: flow-root;
+.billing-ticket-output--raster .billing-ticket-paper {
   width: 100%;
-  max-width: none;
-  height: auto;
-  max-height: none;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: visible;
-  font-size: 9pt;
-  line-height: 1.35;
-  opacity: 1 !important;
-  transform: none !important;
+  padding: 0;
+  color: black;
 }
 
-#billing-ticket-print-root :is(p, dd, dt, li, span) {
-  overflow-wrap: anywhere;
+.billing-ticket-output--raster .billing-ticket-logo {
+  filter: grayscale(1) contrast(1.2);
 }
 
-#billing-ticket-print-root .truncate {
-  min-width: 0;
-  overflow: visible !important;
-  text-overflow: clip !important;
-  white-space: normal !important;
-}
-
-#billing-ticket-print-root :is(.billing-ticket-paper, li, svg, .billing-ticket-codes) {
+.billing-ticket-output .billing-ticket-block {
   break-inside: avoid;
-  page-break-inside: avoid;
 }
 
-#billing-ticket-print-root svg {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  flex-shrink: 0;
+.billing-ticket-output .billing-ticket-products-heading {
+  break-after: avoid;
 }
 
-#billing-ticket-print-root .billing-qr-graphic {
-  width: 36mm;
-  height: auto;
-  aspect-ratio: 1;
-}
-
-#billing-ticket-print-root .billing-barcode-graphic {
-  width: 100%;
-  max-width: 230px;
-}
-
-#billing-ticket-print-root .billing-barcode-graphic svg {
-  width: 100%;
-  height: auto;
-}
-
-#billing-ticket-print-root .billing-ticket-disclaimer {
-  font-size: 8pt;
-  font-weight: 700;
-  line-height: 1.4;
-  letter-spacing: normal;
+.billing-ticket-output--raster .billing-qr-graphic {
+  border: 0;
+  border-radius: 0;
 }
 
 @media print {
-  /* The print job adds a named @page with the measured height, not a fixed 200 mm.
-     The physical driver may still impose its own supported form size. */
-  @page eagle-thermal-ticket {
-    size: auto;
-    margin: 4mm;
-  }
-
   body.billing-ticket-printing {
-    display: block !important;
-    width: auto !important;
-    height: auto !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    background: white !important;
+    display: block;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    background: white;
   }
 
   body.billing-ticket-printing > :not(#billing-ticket-print-root) {
@@ -115,15 +130,9 @@
   }
 
   body.billing-ticket-printing > #billing-ticket-print-root {
-    display: flow-root !important;
-    position: static !important;
-    visibility: visible !important;
+    display: flow-root;
     page: eagle-thermal-ticket;
-    break-before: auto;
-    break-after: auto;
-    break-inside: avoid;
-    page-break-before: auto;
-    page-break-after: auto;
-    page-break-inside: avoid;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

@@ -1,3 +1,4 @@
+import { COMPANY_LOGO_URL } from "@/lib/company"
 import { useEffect, useRef, useState } from "react"
 import "./billing-print.css"
 import { prepareTicketPrint, type TicketPrintJob } from "./billing-ticket-print"
@@ -21,33 +22,18 @@ import {
   type BillingEmitterConfig,
   type DemoInvoice,
 } from "./billing-model"
-import {
-  DemoBarcodeSvg,
-  DemoQrSvg,
-  EagleCrestSvg,
-  ThermalTearEdgeSvg,
-} from "./BillingSvgGraphics"
+import { DemoBarcodeSvg, DemoQrSvg, ThermalTearEdgeSvg } from "./BillingSvgGraphics"
+import BillingThermalTicket, {
+  billingLineAmounts,
+  DEMO_DISCLAIMER,
+  demoQrPayload,
+  demoReceiptId,
+} from "./BillingThermalTicket"
+import BillingEscPosControls from "./BillingEscPosControls"
 
 export type PreviewFormat = "ticket" | "a4"
 
-const ticketPrintInstructions = "Selecciona LOPEN POS-80, escala 100 % y desactiva encabezados y pies. Se solicita un ancho de 80 mm y una longitud calculada para este ticket. Si Windows mantiene el papel de 80 × 200 mm, puede volver a dividirlo: CSS no puede forzar papel continuo en el controlador. Generic / Text Only no garantiza el logo, el QR ni las barras; para conservar el diseño se requiere un controlador gráfico compatible. El corte automático depende del equipo y de su integración."
-
-function buildQrPayload(invoice: DemoInvoice, emitter: BillingEmitterConfig): string {
-  const igvLabel = formatIgvPercent(invoice.igvRate ?? emitter.igvRate)
-  const docLine =
-    invoice.customerDocNumber !== "—"
-      ? `${invoice.customerDocType}: ${invoice.customerDocNumber}`
-      : "SIN DOC"
-  return [
-    emitter.tradeName,
-    `RUC: ${emitter.ruc}`,
-    `DOC: ${invoice.number} (${DOCUMENT_TYPE_META[invoice.type].shortLabel})`,
-    `FECHA: ${formatBillingDateTime(invoice.issuedAt)}`,
-    `CLIENTE: ${invoice.customerName} (${docLine})`,
-    `TOTAL: ${formatMoney(invoice.totalCents)} | IGV ${igvLabel}: ${formatMoney(invoice.igvCents)}`,
-    `ESTADO: ${STATUS_META[invoice.status].label.toUpperCase()}`,
-  ].join("\n")
-}
+const ticketPrintInstructions = "Selecciona LOPEN POS-80, escala 100 % y desactiva encabezados y pies. Si el formato de 80 × 200 mm corta el ticket, selecciona papel continuo de 80 mm o un formulario de 80 mm con longitud suficiente en el controlador gráfico de la impresora."
 
 interface BillingPreviewModalProps {
   invoice: DemoInvoice | null
@@ -70,6 +56,7 @@ export default function BillingPreviewModal({
   const [printDone, setPrintDone] = useState(false)
   const [ticketPrintNotice, setTicketPrintNotice] = useState<string | null>(null)
   const ticketRef = useRef<HTMLDivElement>(null)
+  const ticketPreviewRef = useRef<HTMLDivElement>(null)
   const printJobRef = useRef<TicketPrintJob | null>(null)
   const preparingPrintRef = useRef<symbol | null>(null)
 
@@ -122,7 +109,7 @@ export default function BillingPreviewModal({
     if (!invoice) return
     const typeLabel = DOCUMENT_TYPE_META[invoice.type].label
     const lines = invoice.items
-      .map(item => `- ${item.quantity}x ${item.name} (${formatMoney(item.unitPriceCents * item.quantity)})`)
+      .map(item => `- ${item.quantity}x ${item.name} (${formatMoney(billingLineAmounts(invoice, item).total)})`)
       .join("\n")
     const text = [
       `${emitter.tradeName} · ${typeLabel}`,
@@ -158,7 +145,7 @@ export default function BillingPreviewModal({
     if (printing || printJobRef.current || preparingPrintRef.current) return
     // Preserve the existing A4 demonstration; only thermal tickets use physical printing.
     if (format !== "ticket") { handleSimulatePrint(); return }
-    if (!invoice || !ticketRef.current) return
+    if (!invoice || !ticketPreviewRef.current) return
     const request = Symbol("ticket-print")
     preparingPrintRef.current = request
     setPrinting(true)
@@ -166,7 +153,7 @@ export default function BillingPreviewModal({
     setTicketPrintNotice("Preparando el ticket completo a su ancho imprimible, sin modificar la venta DEMO.")
     let job: TicketPrintJob | undefined
     try {
-      job = await prepareTicketPrint(ticketRef.current)
+      job = await prepareTicketPrint(ticketPreviewRef.current)
       // Closing/changing the preview while fonts load must not print an old receipt.
       if (preparingPrintRef.current !== request) { job.dispose(); return }
       preparingPrintRef.current = null
@@ -314,120 +301,14 @@ export default function BillingPreviewModal({
                     }}
                     exit={{ opacity: 0, y: -12 }}
                     transition={{ duration: 0.28 }}
-                    className="mx-auto w-full max-w-[348px]"
+                    className="mx-auto w-full max-w-[80mm]"
                   >
                     <div className="drop-shadow-[0_14px_28px_rgba(20,20,25,0.12)]">
-                      <ThermalTearEdgeSvg />
-                      <div ref={ticketRef} className="billing-ticket-paper relative bg-white px-6 py-5 font-mono text-xs text-zinc-800">
-                        {invoice.status === "ANULADO" && (
-                          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                            <span className="-rotate-12 rounded-lg border-2 border-[#ed1450]/40 bg-white/85 px-4 py-1.5 font-gaming text-2xl font-bold tracking-widest text-[#ed1450]/70">
-                              ANULADO
-                            </span>
-                          </div>
-                        )}
-
-                        <div className="flex flex-col items-center text-center">
-                          <EagleCrestSvg className="h-10 w-10" />
-                          <p className="mt-2 font-gaming text-sm font-bold tracking-wide text-zinc-900">
-                            {emitter.tradeName}
-                          </p>
-                          <p className="text-[11px] font-semibold text-zinc-600">{emitter.businessName}</p>
-                          <p className="text-[11px] text-zinc-500">R.U.C. {emitter.ruc}</p>
-                          <p className="mt-1 text-[10px] leading-4 text-zinc-500">{emitter.address}</p>
-                          <p className="text-[10px] text-zinc-500">Tel: {emitter.phone}</p>
-                        </div>
-
-                        <div className="my-4 border-y border-dashed border-zinc-300 py-2.5 text-center">
-                          <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-900">
-                            {DOCUMENT_TYPE_META[invoice.type].label}
-                          </p>
-                          <p className="mt-0.5 text-sm font-bold tracking-wider text-[#ed1450]">
-                            {invoice.number}
-                          </p>
-                        </div>
-
-                        <dl className="space-y-1 text-[11px]">
-                          <div className="flex justify-between gap-2">
-                            <dt className="text-zinc-500">Fecha:</dt>
-                            <dd className="text-right font-medium">{formatBillingDateTime(invoice.issuedAt)}</dd>
-                          </div>
-                          <div className="flex justify-between gap-2">
-                            <dt className="text-zinc-500">Receptor:</dt>
-                            <dd className="max-w-[190px] truncate text-right font-medium">{invoice.customerName}</dd>
-                          </div>
-                          {invoice.customerDocNumber !== "—" && (
-                            <div className="flex justify-between gap-2">
-                              <dt className="text-zinc-500">{invoice.customerDocType}:</dt>
-                              <dd className="text-right font-medium">{invoice.customerDocNumber}</dd>
-                            </div>
-                          )}
-                          <div className="flex justify-between gap-2">
-                            <dt className="text-zinc-500">Pago:</dt>
-                            <dd className="text-right font-medium">{invoice.paymentMethod}</dd>
-                          </div>
-                          {invoice.relatedNumber && (
-                            <div className="flex justify-between gap-2 text-amber-700">
-                              <dt>Ref. doc:</dt>
-                              <dd className="text-right font-semibold">{invoice.relatedNumber}</dd>
-                            </div>
-                          )}
-                        </dl>
-
-                        <div className="my-3 border-t border-dashed border-zinc-300 pt-3">
-                          <div className="mb-2 flex justify-between text-[10px] font-bold uppercase text-zinc-500">
-                            <span>Cant · Producto</span>
-                            <span>Importe</span>
-                          </div>
-                          <ul className="space-y-2">
-                            {invoice.items.map(item => (
-                              <li key={item.id} className="flex items-start justify-between gap-2 text-[11px]">
-                                <div className="min-w-0">
-                                  <p className="font-semibold text-zinc-900">
-                                    {item.quantity}x {item.name}
-                                  </p>
-                                  <p className="text-[10px] text-zinc-400">
-                                    {item.sku} · {formatMoney(item.unitPriceCents)} c/u
-                                  </p>
-                                </div>
-                                <span className="shrink-0 font-semibold tabular-nums">
-                                  {formatMoney(item.unitPriceCents * item.quantity)}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div className="border-t border-dashed border-zinc-300 pt-3 text-[11px]">
-                          <div className="flex justify-between py-0.5 text-zinc-500">
-                            <span>OP. GRAVADA</span>
-                            <span className="tabular-nums">{formatMoney(invoice.subtotalCents)}</span>
-                          </div>
-                          <div className="flex justify-between py-0.5 text-zinc-500">
-                            <span>IGV ({formatIgvPercent(invoice.igvRate ?? emitter.igvRate)})</span>
-                            <span className="tabular-nums">{formatMoney(invoice.igvCents)}</span>
-                          </div>
-                          <div className="mt-1.5 flex justify-between border-t border-zinc-900 pt-2 text-sm font-bold text-zinc-900">
-                            <span>TOTAL</span>
-                            <span className="tabular-nums">{formatMoney(invoice.totalCents)}</span>
-                          </div>
-                        </div>
-
-                        <div className="billing-ticket-codes mt-4 flex flex-col items-center border-t border-dashed border-zinc-300 pt-4 text-center">
-                          <DemoQrSvg value={buildQrPayload(invoice, emitter)} size={136} />
-                          <p className="mt-2 break-all text-[9px] text-zinc-400">
-                            Hash DEMO: {invoice.hashCode}
-                          </p>
-                          <div className="mt-3 w-full flex justify-center">
-                            <DemoBarcodeSvg value={invoice.number} />
-                          </div>
-                          <p className="mt-3 text-[10px] leading-4 text-zinc-500">{emitter.ticketFooter}</p>
-                          <p className="billing-ticket-disclaimer mt-2 rounded bg-zinc-100 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">
-                            COMPROBANTE DEMOSTRATIVO - SIN VALIDEZ TRIBUTARIA
-                          </p>
-                        </div>
+                      <div ref={ticketPreviewRef}>
+                        <ThermalTearEdgeSvg />
+                        <BillingThermalTicket ref={ticketRef} invoice={invoice} emitter={emitter} />
+                        <ThermalTearEdgeSvg flip />
                       </div>
-                      <ThermalTearEdgeSvg flip />
                     </div>
                   </motion.div>
                 ) : (
@@ -450,21 +331,21 @@ export default function BillingPreviewModal({
                     {/* Top Header */}
                     <div className="flex flex-col justify-between gap-6 border-b border-zinc-200 pb-6 sm:flex-row sm:items-start">
                       <div className="flex items-start gap-4">
-                        <EagleCrestSvg className="h-14 w-14 shrink-0" />
+                        <img src={COMPANY_LOGO_URL} alt="" className="h-14 w-14 shrink-0 object-contain" />
                         <div>
                           <h4 className="font-gaming text-xl font-bold tracking-wide text-zinc-900">
                             {emitter.tradeName}
                           </h4>
                           <p className="text-xs font-semibold text-zinc-700">{emitter.businessName}</p>
                           <p className="mt-1 text-xs text-zinc-500">{emitter.address}</p>
-                          <p className="text-xs text-zinc-500">Central telefónica: {emitter.phone}</p>
+                          {emitter.phone.trim() && <p className="text-xs text-zinc-500">Tel. {emitter.phone}</p>}
                         </div>
                       </div>
 
                       <div className="min-w-[230px] rounded-xl border-2 border-[#141419] bg-zinc-50/70 p-4 text-center">
-                        <p className="text-xs font-bold tracking-wider text-zinc-600">R.U.C. {emitter.ruc}</p>
+                        <p className="text-xs font-bold tracking-wider text-zinc-600">RUC DEMO {emitter.ruc}</p>
                         <p className="mt-1.5 rounded bg-[#141419] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">
-                          {DOCUMENT_TYPE_META[invoice.type].label}
+                          {DOCUMENT_TYPE_META[invoice.type].label} DEMO
                         </p>
                         <p className="mt-2 font-gaming text-lg font-bold tracking-wider text-[#ed1450]">
                           {invoice.number}
@@ -533,10 +414,10 @@ export default function BillingPreviewModal({
                               <td className="px-4 py-3 font-medium text-zinc-900">{item.name}</td>
                               <td className="px-4 py-3 text-center font-semibold tabular-nums">{item.quantity}</td>
                               <td className="px-4 py-3 text-right tabular-nums text-zinc-600">
-                                {formatMoney(item.unitPriceCents)}
+                                {formatMoney(billingLineAmounts(invoice, item).unit)}
                               </td>
                               <td className="px-4 py-3 text-right font-semibold tabular-nums text-zinc-900">
-                                {formatMoney(item.unitPriceCents * item.quantity)}
+                                {formatMoney(billingLineAmounts(invoice, item).total)}
                               </td>
                             </tr>
                           ))}
@@ -548,7 +429,7 @@ export default function BillingPreviewModal({
                     <div className="mt-6 flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
                       <div className="flex items-center gap-4">
                         <div className="rounded-xl border border-zinc-200 p-1">
-                          <DemoQrSvg value={buildQrPayload(invoice, emitter)} size={112} />
+                          <DemoQrSvg value={demoQrPayload(invoice)} size={112} />
                         </div>
                         <div className="max-w-xs space-y-1 text-[11px] text-zinc-500">
                           <p className="inline-flex items-center gap-1.5 font-semibold text-zinc-700">
@@ -558,7 +439,9 @@ export default function BillingPreviewModal({
                           <p className="break-all font-mono text-[10px] text-zinc-400">
                             Resumen: {invoice.hashCode}
                           </p>
+                          <DemoBarcodeSvg value={demoReceiptId(invoice)} />
                           <p className="leading-4">{emitter.ticketFooter}</p>
+                          <p className="font-semibold">{DEMO_DISCLAIMER}</p>
                         </div>
                       </div>
 
@@ -586,6 +469,7 @@ export default function BillingPreviewModal({
                   </motion.div>
                 )}
               </AnimatePresence>
+              {format === "ticket" && <BillingEscPosControls key={invoice.id} getTicket={() => ticketRef.current} disabled={printing} />}
             </div>
 
             {/* Action Footer */}

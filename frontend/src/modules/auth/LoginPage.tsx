@@ -26,13 +26,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     // Integración OAuth con Google
   }
 
-  const handlePinSignIn = () => {
-    const pin = prompt("Ingrese su PIN de Cajero / Terminal:")
-    if (pin) {
-      console.log("Validando PIN de terminal:", pin)
-    }
-  }
-
   const handleForgotPassword = () => {
     alert("Comuníquese con el supervisor de Eagle Gaming para restablecer su clave.")
   }
@@ -62,7 +55,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           logoUrl={logoUrl}
           onSignIn={handleSignIn}
           onGoogleSignIn={handleGoogleSignIn}
-          onPinSignIn={handlePinSignIn}
           onForgotPassword={handleForgotPassword}
         />
       </div>

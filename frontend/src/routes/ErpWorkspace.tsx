@@ -4,6 +4,7 @@ import ErpLayout, { type ErpAccount } from "@/components/layout/ErpLayout"
 import DashboardPage from "@/modules/dashboard/DashboardPage"
 import SalesPage from "@/modules/sales/SalesPage"
 import BillingPage from "@/modules/billing/BillingPage"
+import { loadBillingStore } from "@/modules/billing/billing-demo"
 import { erpModules } from "./erp-navigation"
 
 function currentModuleId() {
@@ -12,6 +13,7 @@ function currentModuleId() {
 
 export default function ErpWorkspace({ account }: { account?: ErpAccount }) {
   const [moduleId, setModuleId] = useState(currentModuleId)
+  const [company, setCompany] = useState(() => loadBillingStore().emitter)
   const selectedModule = erpModules.find(module => module.id === moduleId)
 
   useEffect(() => {
@@ -30,13 +32,13 @@ export default function ErpWorkspace({ account }: { account?: ErpAccount }) {
     return () => { document.title = previousTitle }
   }, [selectedModule, account])
 
-  return <ErpLayout selectedModule={selectedModule} account={account}>
+  return <ErpLayout selectedModule={selectedModule} account={account} tradeName={company.tradeName}>
     {moduleId === "dashboard" ? (
       <DashboardPage />
     ) : moduleId === "ventas" ? (
-      <SalesPage />
+      <SalesPage company={company} />
     ) : moduleId === "facturacion" ? (
-      <BillingPage />
+      <BillingPage onEmitterChange={setCompany} />
     ) : (
       <section className="flex min-h-[380px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center">
         <span className="rounded-2xl bg-rose-50 p-4 text-[#ed1450]"><Construction size={32} aria-hidden="true" /></span>

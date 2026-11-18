@@ -1,14 +1,10 @@
 import { useMemo } from "react"
 import QRCode from "qrcode"
 
-/**
- * Generates a real, ISO/IEC 18004 compliant QR Code rendered as crisp SVG.
- * Scannable directly from any smartphone camera (iOS / Android).
- */
+/** Render the QR matrix with a four-module quiet zone. */
 export function DemoQrSvg({ value, size = 132 }: { value: string; size?: number }) {
   const qrData = useMemo(() => {
-    const content = value.trim() || "EAGLE-GAMING-POS"
-    const qr = QRCode.create(content, { errorCorrectionLevel: "M" })
+    const qr = QRCode.create(value, { errorCorrectionLevel: "M" })
     const count = qr.modules.size
     const quietZone = 4
     const total = count + quietZone * 2
@@ -31,7 +27,7 @@ export function DemoQrSvg({ value, size = 132 }: { value: string; size?: number 
       height={size}
       viewBox={`0 0 ${qrData.total} ${qrData.total}`}
       role="img"
-      aria-label="Código QR escaneable del comprobante"
+      aria-label="Codigo QR DEMO del comprobante"
       className="billing-qr-graphic block rounded-lg border border-zinc-200 bg-white"
       shapeRendering="crispEdges"
     >
@@ -62,19 +58,15 @@ const CODE128_PATTERNS: readonly string[] = [
   "211214", "211232", "2331112",
 ]
 
-/**
- * Generates a real, spec-compliant Code 128B Barcode rendered as crisp SVG.
- * Scannable by POS laser scanners and mobile barcode readers.
- */
-export function DemoBarcodeSvg({ value }: { value: string }) {
+/** Encode the printable ASCII receipt identifier as Code 128B. */
+export function DemoBarcodeSvg({ value, height = 42 }: { value: string; height?: number }) {
   const barcode = useMemo(() => {
-    const clean = value.replace(/[^\x20-\x7E]/g, "").slice(0, 24) || "EAGLE-0001"
     const startCodeB = 104
     const codes: number[] = [startCodeB]
     let checksum = startCodeB
 
-    for (let i = 0; i < clean.length; i++) {
-      const code = clean.charCodeAt(i) - 32
+    for (let i = 0; i < value.length; i++) {
+      const code = value.charCodeAt(i) - 32
       codes.push(code)
       checksum += code * (i + 1)
     }
@@ -97,45 +89,27 @@ export function DemoBarcodeSvg({ value }: { value: string }) {
       }
     }
 
-    return { width: x + quietZone, rects, label: clean }
+    return { width: x + quietZone, rects }
   }, [value])
 
   return (
     <div className="billing-barcode-graphic flex flex-col items-center">
       <svg
-        viewBox={`0 0 ${barcode.width} 42`}
-        className="h-10 w-full max-w-[230px] rounded bg-white"
+        viewBox={`0 0 ${barcode.width} ${height}`}
+        className="block h-auto w-full rounded bg-white"
         role="img"
-        aria-label={`Código de barras Code 128 del comprobante ${barcode.label}`}
+        aria-label={`Codigo de barras Code 128 del comprobante ${value}`}
         shapeRendering="crispEdges"
       >
-        <rect width={barcode.width} height={42} fill="#ffffff" />
+        <rect width={barcode.width} height={height} fill="#ffffff" />
         {barcode.rects.map((bar, idx) => (
-          <rect key={idx} x={bar.x} y={4} width={bar.w} height={34} fill="#000000" />
+          <rect key={idx} x={bar.x} y={4} width={bar.w} height={height - 8} fill="#000000" />
         ))}
       </svg>
-      <span className="mt-0.5 font-mono text-[9px] tracking-[0.22em] text-zinc-500">
-        {barcode.label}
+      <span className="mt-0.5 font-mono text-[10px] font-semibold">
+        {value}
       </span>
     </div>
-  )
-}
-
-export function EagleCrestSvg({ className = "h-9 w-9" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 40 40" fill="none" aria-hidden="true" className={className}>
-      <rect width="40" height="40" rx="10" fill="#141419" />
-      <path
-        d="M9 14.5L20 9L31 14.5L26.5 19.5L30 26L20 31L10 26L13.5 19.5L9 14.5Z"
-        stroke="#ed1450"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M15 18.5L20 15.5L25 18.5L20 25L15 18.5Z"
-        fill="#ed1450"
-      />
-    </svg>
   )
 }
 

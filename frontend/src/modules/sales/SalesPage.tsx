@@ -3,6 +3,7 @@ import { ShoppingCart, Store, History, FileText, CheckCircle2, RefreshCw } from 
 import SalesWorkspace from "./SalesWorkspace"
 import SalesCheckout from "./SalesCheckout"
 import SalesHistory from "./SalesHistory"
+import type { CompanyDetails } from "@/lib/company"
 import SalesQuotes from "./SalesQuotes"
 import SalesRecordDetail from "./SalesRecordDetail"
 import useSalesCart from "./useSalesCart"
@@ -14,7 +15,7 @@ import { deriveDemoStock } from "./sales-stock"
 const views = [{ id: "pos", title: "Punto de venta", icon: Store }, { id: "history", title: "Historial de ventas", icon: History }, { id: "quotes", title: "Cotizaciones", icon: FileText }] as const
 type SalesView = typeof views[number]["id"]
 
-export default function SalesPage() {
+export default function SalesPage({ company }: { company: CompanyDetails }) {
   const [view, setView] = useState<SalesView>("pos")
   const records = useDemoRecords()
   const stock = useMemo(() => deriveDemoStock(records.data.sales), [records.data.sales])
@@ -41,7 +42,7 @@ export default function SalesPage() {
     {notice && <div role="status" className="rounded-xl border border-zinc-200 bg-white p-4"><p className="flex items-start gap-2 text-sm font-semibold"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#cf1045]" aria-hidden="true" />{notice}</p><p className="mt-2 text-xs leading-6 text-zinc-500">Solo demostración en este navegador. No representa una transacción financiera real.</p>{receipt && <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => setDetail(receipt)} className="sales-button sales-button-secondary text-xs">Ver {receipt.number}</button><button type="button" onClick={() => setView("history")} className="sales-button sales-button-secondary text-xs">Ir al historial</button></div>}</div>}
     <div hidden={view !== "pos"}><SalesWorkspace draft={draft} onSubmit={() => { if (draft.summary.lines.length && !draft.summary.discountError && !draft.summary.cartError) setCheckoutOpen(true) }} /></div>
     <div hidden={view !== "history"}><SalesHistory sales={records.data.sales} /></div>
-    <div hidden={view !== "quotes"}><SalesQuotes products={products} quotes={records.data.quotes} onSave={input => records.commit(data => saveDemoQuote(data, input))} onDuplicate={id => records.commit(data => duplicateDemoQuote(data, id))} onDelete={id => records.commit(data => deleteDemoQuote(data, id))} onNotice={showNotice} /></div>
+    <div hidden={view !== "quotes"}><SalesQuotes company={company} products={products} quotes={records.data.quotes} onSave={input => records.commit(data => saveDemoQuote(data, input))} onDuplicate={id => records.commit(data => duplicateDemoQuote(data, id))} onDelete={id => records.commit(data => deleteDemoQuote(data, id))} onNotice={showNotice} /></div>
     <SalesCheckout open={checkoutOpen} summary={draft.summary} onClose={() => setCheckoutOpen(false)} onConfirm={(method, received) => {
       const result = records.commit(data => registerDemoSale(data, draft.summary, method, received))
       if (result.ok) {
