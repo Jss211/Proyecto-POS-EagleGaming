@@ -4,6 +4,7 @@ import ErpLayout, { type ErpAccount } from "@/components/layout/ErpLayout"
 import DashboardPage from "@/modules/dashboard/DashboardPage"
 import SalesPage from "@/modules/sales/SalesPage"
 import BillingPage from "@/modules/billing/BillingPage"
+import ProductsPage from "@/modules/products/ProductsPage"
 import { loadBillingStore } from "@/modules/billing/billing-demo"
 import { erpModules } from "./erp-navigation"
 
@@ -37,6 +38,8 @@ export default function ErpWorkspace({ account }: { account?: ErpAccount }) {
       <DashboardPage />
     ) : moduleId === "ventas" ? (
       <SalesPage company={company} />
+    ) : moduleId === "productos" ? (
+      <ProductsPage permissionCheckEmail={import.meta.env.DEV ? account?.email : undefined} />
     ) : moduleId === "facturacion" ? (
       <BillingPage onEmitterChange={setCompany} />
     ) : (
