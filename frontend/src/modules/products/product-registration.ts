@@ -1,4 +1,6 @@
-﻿export type BarcodeKind = "internal" | "gtin"
+import { supabase } from "@/lib/supabase"
+
+export type BarcodeKind = "internal" | "gtin"
 
 export type RegistrationFields = {
   name: string
@@ -22,7 +24,7 @@ export type RegisterProductRequest = {
 }
 
 export type RegisterProductError =
-  | { kind: "validation" | "duplicate" | "permission" | "connection" | "unexpected"; message: string }
+  | { kind: "validation" | "duplicate" | "permission" | "session" | "connection" | "unexpected"; message: string }
 
 export type RegisterProductResponse =
   | { ok: true; productId: string }
@@ -56,6 +58,9 @@ export function validateRegistration(fields: RegistrationFields, barcodeKind: Ba
   if (sku && !/^\S{1,128}$/.test(sku)) return invalid("El SKU debe tener hasta 128 caracteres y no puede contener espacios internos.")
   if (!category.trim()) return invalid("Ingresa la categoría del producto.")
   if (!registrationBarcodeKey(barcode, barcodeKind)) return invalid("El GTIN debe ser un UPC-A o EAN-13 con dígito verificador válido.")
+  if (barcodeKind === "internal" && canonicalGtin(barcode)) {
+    return invalid("Este código tiene un dígito verificador UPC-A o EAN-13 válido. Regístralo como GTIN.")
+  }
 
   const decimal = (value: string) => value.trim().replace(",", ".")
   if (![price, costPrice].every(value => /^\d{1,8}(\.\d{1,2})?$/.test(decimal(value)))) {
@@ -81,7 +86,8 @@ export function createProductRegistrationService(rpc: RegistrationRpc): Registra
       if (error?.code === "23505") {
         return { ok: false, error: { kind: "duplicate", message: "Ya existe un producto con ese código, su GTIN equivalente o ese SKU." } }
       }
-      if (status === 401 || status === 403 || error?.code === "42501") {
+      if (status === 401 || error?.code === "PGRST301" || error?.code === "PGRST303") return sessionError()
+      if (status === 403 || error?.code === "42501") {
         return { ok: false, error: { kind: "permission", message: "Tu sesión no está autorizada para registrar productos." } }
       }
       if (status === 0 || (status !== undefined && status >= 500)) return connectionError()
@@ -94,6 +100,23 @@ export function createProductRegistrationService(rpc: RegistrationRpc): Registra
     } catch {
       return connectionError()
     }
+  }
+}
+
+function sessionError(): Extract<RegisterProductResponse, { ok: false }> {
+  return { ok: false, error: { kind: "session", message: "La sesión venció o cambió. Vuelve a iniciar sesión antes de guardar." } }
+}
+
+export async function registerProduct(request: RegisterProductRequest, userId: string): Promise<RegisterProductResponse> {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession()
+    if (error && (error.status === 0 || (error.status !== undefined && error.status >= 500))) return connectionError()
+    if (error || session?.user.id !== userId) return sessionError()
+    return createProductRegistrationService((name, args) => supabase.rpc(name, args)
+      .setHeader("Authorization", `Bearer ${session.access_token}`)
+      .abortSignal(AbortSignal.timeout(12000)))(request)
+  } catch {
+    return connectionError()
   }
 }
 

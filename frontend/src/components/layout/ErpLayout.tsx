@@ -84,7 +84,9 @@ export default function ErpLayout({ selectedModule, children, account, tradeName
       </header>
       <main id="erp-content" tabIndex={-1} className="mx-auto max-w-[1600px] space-y-6 p-4 sm:p-8">
         {signOutError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">No se pudo cerrar la sesión. Inténtalo de nuevo.</p>}
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-900"><span>{account ? <><strong>Datos de demostración.</strong> Tu sesión es real; las cifras y los productos del Dashboard son ejemplos.</> : <><strong>Vista previa de desarrollo.</strong> Datos de demostración; no representa una sesión autenticada.</>}</span>{!account && <a href="/" className="font-semibold underline underline-offset-4">Ir al login</a>}</div>
+        {(!account || (selectedModule?.id !== "productos" && selectedModule?.id !== "inventario")) && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-100 bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-900"><span>{account ? <><strong>Datos de demostración.</strong> Tu sesión es real; las cifras y los productos del Dashboard son ejemplos.</> : <><strong>Vista previa de desarrollo.</strong> Datos de demostración; no representa una sesión autenticada.</>}</span>{!account && <a href="/" className="font-semibold underline underline-offset-4">Ir al login</a>}</div>
+        )}
         {children}
         <footer className="border-t border-zinc-200 pt-5 text-xs text-zinc-400">EagleGaming POS / ERP · Estructura en desarrollo</footer>
       </main>

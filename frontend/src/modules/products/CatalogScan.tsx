@@ -4,13 +4,14 @@ import ProductDialog, { fieldClass, primaryButton } from "./ProductDialog"
 import { lookupBarcode, type BarcodeResult, type CatalogProduct } from "./product-lookup"
 import { formatPrice } from "./products-demo"
 
-function CatalogDetails({ product }: { product: CatalogProduct }) {
+export function CatalogDetails({ product }: { product: CatalogProduct & { stock?: number | null; minStock?: number | null } }) {
   const fields = [
     ["Nombre", product.name],
     ["SKU", product.sku],
     ["Código de barras", product.barcode],
     ["Categoría", product.category],
     ["Precio", product.price === null ? null : formatPrice(String(product.price))],
+    ...("stock" in product ? [["Stock", product.stock], ["Stock mínimo", product.minStock]] as const : []),
     ["Estado", product.isActive === null ? null : product.isActive ? "Activo" : "Inactivo"],
     ["Descripción", product.description],
   ] as const
@@ -27,10 +28,9 @@ function CatalogDetails({ product }: { product: CatalogProduct }) {
   )
 }
 
-export default function CatalogScan({ initialBarcode, onClose, onDemo, onNew }: {
+export default function CatalogScan({ initialBarcode, onClose, onNew }: {
   initialBarcode?: string
   onClose: () => void
-  onDemo: () => void
   onNew: (barcode: string) => void
 }) {
   const [code, setCode] = useState(initialBarcode ?? "")
@@ -101,7 +101,6 @@ export default function CatalogScan({ initialBarcode, onClose, onDemo, onNew }: 
           <CatalogDetails product={result.product} />
         </div>
       )}
-      <button type="button" onClick={onDemo} className="mt-4 min-h-11 text-sm font-semibold text-[#a71037] underline underline-offset-4">Consultar catálogo DEMO</button>
     </ProductDialog>
   )
 }

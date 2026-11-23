@@ -2,7 +2,7 @@
 import { ScanLine } from "lucide-react"
 import ProductDialog, { fieldClass, primaryButton, secondaryButton } from "./ProductDialog"
 import { emptyFields, formatPrice, normalize, productFields, type Product, type ProductFields } from "./products-demo"
-import { connectionError, validateRegistration, type RegistrationAccess } from "./product-registration"
+import { canonicalGtin, connectionError, validateRegistration, type RegistrationAccess } from "./product-registration"
 
 type RegistrationState = { kind: "idle" | "validating" | "saving" } |
   { kind: "valid" | "saved" | "error" | "duplicate"; message: string }
@@ -100,7 +100,8 @@ export function ProductForm(props: ProductFormProps) {
   }
 
   return (
-    <ProductDialog title={title} onClose={onClose}>
+    <ProductDialog title={real ? "Registrar producto en Supabase" : title}
+      onClose={() => { if (!inFlight.current || state.kind === "saved") onClose() }}>
       <form onSubmit={submit} onChange={() => { if (real && !inFlight.current && state.kind !== "saved") setState({ kind: "idle" }) }} className="space-y-5">
         {real && <p role="status" className="rounded-lg bg-rose-50 p-3 text-sm text-[#a71037]">Supabase no devolvió un producto visible con ese código. La consulta solo incluye registros que tu sesión puede ver.</p>}
         {!real && <p className="text-sm text-zinc-600">Los cambios DEMO se conservan mientras esta pantalla esté abierta.</p>}
@@ -116,7 +117,7 @@ export function ProductForm(props: ProductFormProps) {
           ))}
           {real && <label className="sm:col-span-2">
             <span className="mb-1 block text-sm font-medium">Tipo de código</span>
-            <select name="barcodeKind" className={fieldClass} defaultValue="">
+            <select name="barcodeKind" className={fieldClass} defaultValue={canonicalGtin(barcode) ? "gtin" : ""}>
               <option value="" disabled>Selecciona el tipo de código</option>
               <option value="internal">Código interno</option>
               <option value="gtin">GTIN confirmado (UPC-A o EAN-13)</option>
@@ -127,7 +128,7 @@ export function ProductForm(props: ProductFormProps) {
         {busy && <p role="status" className="text-sm text-zinc-600">{state.kind === "validating" ? "Validando datos…" : "Guardando producto…"}</p>}
         {"message" in state && <p role={state.kind === "error" || state.kind === "duplicate" ? "alert" : "status"} className="rounded-lg bg-zinc-50 p-3 text-sm">{state.message}</p>}
         <div className="flex flex-wrap justify-end gap-2">
-          <button type="button" onClick={onClose} className={secondaryButton}>{state.kind === "saved" ? "Cerrar" : "Cancelar"}</button>
+          <button type="button" disabled={busy} onClick={onClose} className={secondaryButton}>{state.kind === "saved" ? "Cerrar" : "Cancelar"}</button>
           {real && <button type="button" disabled={busy || state.kind === "saved"} onClick={event => {
             if (event.currentTarget.form) void register(event.currentTarget.form, true)
           }} className={secondaryButton}>Validar datos</button>}
@@ -157,14 +158,15 @@ export function ProductDetails({ product, onClose }: { product: Product; onClose
 
 type ScanResult = { kind: "idle" | "error" } | { kind: "reading" | "new"; code: string } | { kind: "found"; product: Product }
 
-export function ProductScan({ products, onClose, onFound, onNew }: {
+export function ProductScan({ products, initialBarcode, onClose, onFound, onNew }: {
   products: Product[]
+  initialBarcode?: string
   onClose: () => void
   onFound: (product: Product) => void
   onNew: (barcode: string) => void
 }) {
-  const [code, setCode] = useState("")
-  const [result, setResult] = useState<ScanResult>({ kind: "idle" })
+  const [code, setCode] = useState(initialBarcode ?? "")
+  const [result, setResult] = useState<ScanResult>(initialBarcode ? { kind: "reading", code: initialBarcode } : { kind: "idle" })
 
   useEffect(() => {
     if (result.kind !== "reading") return
