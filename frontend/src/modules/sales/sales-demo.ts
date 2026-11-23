@@ -18,6 +18,30 @@ export interface DemoProduct {
 
 // Fixed catalog for the frontend demonstration; never queries or changes real stock.
 export const salesDemoProducts: DemoProduct[] = [
+  {
+    id: "mon-teros-2417s",
+    name: "Monitor Gaming TEROS TE-2417S 23.8\"",
+    sku: "TE-2417S",
+    barcode: "0782752508286",
+    category: "Monitores",
+    priceCents: 48900,
+    available: 7,
+    detail: "23.8\" FHD · 144Hz · 1ms · Panel IPS",
+    brand: "TEROS",
+    description: "Monitor gaming plano de 23.8 pulgadas con resolución Full HD, tasa de refresco de 144Hz, tiempo de respuesta de 1ms y panel IPS. Conectividad HDMI, DisplayPort y salida de audio.",
+    specifications: [
+      "Tamaño: 23.8 pulgadas plano",
+      "Resolución: 1920x1080 (Full HD)",
+      "Tiempo de respuesta: 1ms",
+      "Tasa de refresco: 144Hz",
+      "Tipo de panel: IPS",
+      "Puertos: HDMI + DisplayPort + Salida de Audio",
+      "Parlantes integrados: Sí",
+      "Soporte VESA: 75x75 mm",
+      "Base: Metálica",
+      "Importado por: Grupo Deltron S.A. (RUC 20212331377)"
+    ]
+  },
   { id: "gpu-4060", name: "GeForce RTX 4060", sku: "EG-GPU-001", barcode: "DEMO000001", category: "Tarjetas gráficas", priceCents: 189900, available: 5, detail: "8 GB GDDR6 · Doble ventilador" },
   { id: "cpu-5600", name: "AMD Ryzen 5 5600", sku: "EG-CPU-001", barcode: "DEMO000002", category: "Procesadores", priceCents: 54900, available: 8, detail: "6 núcleos · Socket AM4" },
   { id: "ram-16", name: "Kingston Fury Beast 16 GB", sku: "EG-RAM-001", barcode: "DEMO000003", category: "Memorias RAM", priceCents: 18900, available: 12, detail: "DDR4 · 3200 MHz" },

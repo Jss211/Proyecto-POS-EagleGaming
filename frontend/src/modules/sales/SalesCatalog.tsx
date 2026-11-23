@@ -1,5 +1,5 @@
 import { useId } from "react"
-import { Search, Plus, Eye, Cpu, MemoryStick, Keyboard, Mouse, Monitor, Headphones, HardDrive, CircuitBoard, PackageSearch } from "lucide-react"
+import { Search, Plus, Eye, Cpu, MemoryStick, Keyboard, Mouse, Monitor, Headphones, HardDrive, CircuitBoard, PackageSearch, ScanLine } from "lucide-react"
 import { salesDemoCategories, type DemoProduct, type ProductCategory } from "./sales-demo"
 import { formatSalesMoney, type CartItem } from "./sales-model"
 
@@ -14,15 +14,48 @@ interface CatalogProps {
   onCategoryChange: (value: string) => void
   onAdd: (product: DemoProduct) => void
   onDetails: (product: DemoProduct) => void
+  onBarcodeScan?: (code: string) => boolean
 }
 
-export default function SalesCatalog({ products, cart, query, category, onQueryChange, onCategoryChange, onAdd, onDetails }: CatalogProps) {
+export default function SalesCatalog({ products, cart, query, category, onQueryChange, onCategoryChange, onAdd, onDetails, onBarcodeScan }: CatalogProps) {
   const id = useId()
   return <section aria-labelledby={`${id}-catalog`} className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
-    <div className="mb-5 flex flex-wrap items-center justify-between gap-2"><h3 id={`${id}-catalog`} className="font-semibold text-zinc-900">Catálogo de productos</h3><span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-500">DEMO</span></div>
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center gap-2.5">
+        <h3 id={`${id}-catalog`} className="font-semibold text-zinc-900">Catálogo de productos</h3>
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
+          <ScanLine size={12} aria-hidden="true" />
+          Lector POS listo
+        </span>
+      </div>
+      <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-500">DEMO</span>
+    </div>
     <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_170px]">
-      <label className="block text-xs font-medium text-zinc-600" htmlFor={`${id}-search`}>Buscar producto
-        <span className="relative mt-1 block"><Search size={17} aria-hidden="true" className="pointer-events-none absolute left-3 top-3.5 text-zinc-400" /><input id={`${id}-search`} type="search" value={query} onChange={event => onQueryChange(event.target.value)} placeholder="Nombre, SKU o código de barras" className="sales-input pl-9" /></span>
+      <label className="block text-xs font-medium text-zinc-600" htmlFor="sales-search-input">Buscar o escanear producto
+        <span className="relative mt-1 block">
+          <Search size={17} aria-hidden="true" className="pointer-events-none absolute left-3 top-3.5 text-zinc-400" />
+          <input
+            id="sales-search-input"
+            type="search"
+            value={query}
+            onChange={event => onQueryChange(event.target.value)}
+            onKeyDown={event => {
+              if (event.key === "Enter") {
+                event.preventDefault()
+                const code = query.trim()
+                if (code && onBarcodeScan) {
+                  const success = onBarcodeScan(code)
+                  if (!success && products.length === 1) {
+                    onAdd(products[0])
+                    onQueryChange("")
+                  }
+                }
+              }
+            }}
+            placeholder="Dispara la pistola o escribe (ej: 0782752508286)..."
+            className="sales-input pl-9"
+          />
+        </span>
       </label>
       <label className="block text-xs font-medium text-zinc-600" htmlFor={`${id}-category`}>Categoría<select id={`${id}-category`} value={category} onChange={event => onCategoryChange(event.target.value)} className="sales-input mt-1"><option value="Todas">Todas las categorías</option>{salesDemoCategories.map(item => <option key={item}>{item}</option>)}</select></label>
     </div>
