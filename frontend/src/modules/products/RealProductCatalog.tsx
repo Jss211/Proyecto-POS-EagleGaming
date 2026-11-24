@@ -17,7 +17,7 @@ export function isRealStockLow(product: CatalogListingProduct) {
     product.stock <= product.minStock
 }
 
-export function useRealProductCatalog(email: string | undefined, checkingPermission: boolean) {
+export function useRealProductCatalog(email: string | undefined, checkingPermission: boolean, forSales = false, expectedSession?: string) {
   const [catalog, setCatalog] = useState<CatalogState>({ kind: "loading" })
   const [revision, setRevision] = useState(0)
 
@@ -30,7 +30,7 @@ export function useRealProductCatalog(email: string | undefined, checkingPermiss
     }, 15000)
 
     setCatalog({ kind: "loading" })
-    readVisibleCatalog(email, controller.signal)
+    readVisibleCatalog(email, controller.signal, forSales, expectedSession)
       .then(products => {
         if (!controller.signal.aborted) setCatalog({ kind: "ready", products })
       })
@@ -45,7 +45,7 @@ export function useRealProductCatalog(email: string | undefined, checkingPermiss
       window.clearTimeout(timeout)
       controller.abort()
     }
-  }, [email, revision, checkingPermission])
+  }, [email, revision, checkingPermission, forSales, expectedSession])
 
   return {
     catalog: checkingPermission ? { kind: "loading" } as const : catalog,

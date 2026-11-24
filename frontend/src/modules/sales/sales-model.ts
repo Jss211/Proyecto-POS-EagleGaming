@@ -1,19 +1,18 @@
-import type { DemoProduct } from "./sales-demo"
-import { stockAvailabilityError } from "./sales-stock"
+import type { SalesProduct } from "./sales-product"
 
 const currency = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" })
 export const formatSalesMoney = (cents: number) => currency.format(cents / 100)
 export const normalizeSearch = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
 
-export function filterSalesProducts(query: string, category: string, products: readonly DemoProduct[]) {
+export function filterSalesProducts(query: string, category: string, products: readonly SalesProduct[]) {
   const search = normalizeSearch(query)
-  return products.filter(product => (category === "Todas" || product.category === category) && normalizeSearch(`${product.name} ${product.sku} ${product.barcode}`).includes(search))
+  return products.filter(product => (!category || product.category === category) && normalizeSearch(`${product.name} ${product.sku} ${product.barcode}`).includes(search))
 }
 
 export interface CartItem { productId: string; quantity: number }
 export type CartAction = { type: "add" | "increase" | "decrease" | "remove"; productId: string } | { type: "clear" }
 
-export function cartReducer(cart: CartItem[], action: CartAction, products: readonly DemoProduct[]): CartItem[] {
+export function cartReducer(cart: CartItem[], action: CartAction, products: readonly SalesProduct[]): CartItem[] {
   if (action.type === "clear") return []
   if (action.type === "remove") return cart.filter(item => item.productId !== action.productId)
   const product = products.find(item => item.id === action.productId)
@@ -30,7 +29,20 @@ export function parseMoneyCents(value: string): number | null {
   return Number(whole) * 100 + Number(decimal.padEnd(2, "0"))
 }
 
-export function summarizeCart(cart: CartItem[], discountInput: string, products: readonly DemoProduct[]) {
+export function stockAvailabilityError(items: readonly CartItem[], products: readonly SalesProduct[]): string | null {
+  if (new Set(items.map(item => item.productId)).size !== items.length) return "Hay productos duplicados en la selección. Revisa el carrito."
+  for (const item of items) {
+    const product = products.find(product => product.id === item.productId)
+    if (!product) return "La selección contiene un producto que ya no está disponible en el catálogo."
+    if (product.stockVerified === false) return `${product.name}: no se pudo verificar el stock. Reintenta la lectura del historial local.`
+    if (!Number.isSafeInteger(item.quantity) || item.quantity <= 0) return `${product.name}: la cantidad debe ser un entero mayor que cero.`
+    if (product.available === 0) return `${product.name}: agotado, 0 disponibles en el stock. Elimina este producto de la selección.`
+    if (item.quantity > product.available) return `${product.name}: seleccionaste ${item.quantity}, pero solo hay ${product.available} disponibles en el stock. Reduce la cantidad.`
+  }
+  return null
+}
+
+export function summarizeCart(cart: CartItem[], discountInput: string, products: readonly SalesProduct[]) {
   const cartError = stockAvailabilityError(cart, products)
   let lineSum = 0
   const lines = cart.flatMap(item => {

@@ -7,8 +7,8 @@ import ProductEditDialog from "./ProductEditDialog"
 import ProductStatusDialog from "./ProductStatusDialog"
 import { isPendingProduct, isRealStockLow, useRealProductCatalog } from "./RealProductCatalog"
 import { readCatalogProduct, type CatalogListingProduct } from "./product-lookup"
-import { registerProduct } from "./product-registration"
 import ProductDialog, { fieldClass, primaryButton, secondaryButton } from "./ProductDialog"
+import ProductRegistrationDraft from "./ProductRegistrationDraft"
 import { ProductDetails, ProductForm, ProductScan } from "./ProductModals"
 import { demoProducts, formatPrice, isLowStock, normalize, type Product, type ProductFields } from "./products-demo"
 
@@ -253,11 +253,7 @@ export default function ProductsPage({ accountEmail, demo = false }: { accountEm
         userId={statusPermission.kind === "allowed" ? statusPermission.userId : undefined} />}
       {modal?.kind === "edit" && <ProductForm product={modal.product} onClose={close} onSave={fields => save(fields, modal.product)} />}
       {modal?.kind === "register" && <ProductForm barcode={modal.barcode} onClose={close} onSave={save} />}
-      {modal?.kind === "draft" && <ProductForm mode="real" barcode={modal.barcode} onClose={close}
-        access={permission.kind === "allowed" ? {
-          save: request => registerProduct(request, permission.userId),
-          refreshCatalog,
-        } : undefined} />}
+      {modal?.kind === "draft" && <ProductRegistrationDraft barcode={modal.barcode ?? ""} onClose={close} />}
     </div>
   )
 }

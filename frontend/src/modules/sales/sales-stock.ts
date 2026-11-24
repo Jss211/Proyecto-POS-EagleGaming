@@ -1,6 +1,5 @@
-import { salesDemoProducts, type DemoProduct } from "./sales-demo"
+import { salesDemoProducts } from "./sales-demo"
 import type { DemoSale } from "./sales-records"
-import type { CartItem } from "./sales-model"
 
 // Stock is derived, never persisted separately or deducted by an effect.
 export function deriveDemoStock(sales: readonly DemoSale[]) {
@@ -10,7 +9,7 @@ export function deriveDemoStock(sales: readonly DemoSale[]) {
   for (const sale of sales) {
     if (sale.status !== "Registrada DEMO") continue
     if (seen.has(sale.id)) {
-      warnings.add(`${sale.number}: venta duplicada; se contabiliza una sola vez para el stock DEMO.`)
+      warnings.add(`${sale.number}: venta duplicada; se contabiliza una sola vez para el stock.`)
       continue
     }
     seen.add(sale.id)
@@ -31,17 +30,4 @@ export function deriveDemoStock(sales: readonly DemoSale[]) {
     return { ...product, available: Math.max(0, product.available - quantity) }
   })
   return { products, warnings: [...warnings] }
-}
-
-export function stockAvailabilityError(items: readonly CartItem[], products: readonly DemoProduct[]): string | null {
-  if (new Set(items.map(item => item.productId)).size !== items.length) return "Hay productos duplicados en la selección. Revisa el carrito DEMO."
-  for (const item of items) {
-    const product = products.find(product => product.id === item.productId)
-    if (!product) return "La selección contiene un producto que ya no está en el catálogo DEMO."
-    if (product.stockVerified === false) return `${product.name}: no se pudo verificar el stock DEMO. Reintenta la lectura del historial local.`
-    if (!Number.isSafeInteger(item.quantity) || item.quantity <= 0) return `${product.name}: la cantidad debe ser un entero mayor que cero.`
-    if (product.available === 0) return `${product.name}: agotado, 0 disponibles en el stock DEMO. Elimina este producto de la selección.`
-    if (item.quantity > product.available) return `${product.name}: seleccionaste ${item.quantity}, pero solo hay ${product.available} disponibles en el stock DEMO. Reduce la cantidad.`
-  }
-  return null
 }

@@ -1,86 +1,24 @@
-﻿import { useEffect, useRef, useState, type FormEvent } from "react"
+﻿import { useEffect, useState, type FormEvent } from "react"
 import { ScanLine } from "lucide-react"
 import ProductDialog, { fieldClass, primaryButton, secondaryButton } from "./ProductDialog"
 import { emptyFields, formatPrice, normalize, productFields, type Product, type ProductFields } from "./products-demo"
-import { canonicalGtin, connectionError, validateRegistration, type RegistrationAccess } from "./product-registration"
-
-type RegistrationState = { kind: "idle" | "validating" | "saving" } |
-  { kind: "valid" | "saved" | "error" | "duplicate"; message: string }
-
-type ProductFormProps = {
-  barcode?: string
-  onClose: () => void
-} & ({
-  mode?: "demo"
-  product?: Product
-  onSave: (fields: ProductFields) => string | undefined
-} | {
-  mode: "real"
-  access?: RegistrationAccess
-})
 
 function readProductFields(form: FormData) {
   return Object.fromEntries(productFields.map(({ key }) => [key, String(form.get(key) ?? "").trim()])) as ProductFields
 }
 
-export function ProductForm(props: ProductFormProps) {
-  const { barcode = "", onClose } = props
-  const real = props.mode === "real"
-  const product = real ? undefined : props.product
-  const access = real ? props.access : undefined
-  const [state, setState] = useState<RegistrationState>({ kind: "idle" })
-  const inFlight = useRef(false)
+export function ProductForm({ barcode = "", product, onClose, onSave }: {
+  barcode?: string
+  product?: Product
+  onClose: () => void
+  onSave: (fields: ProductFields) => string | undefined
+}) {
   const [error, setError] = useState("")
   const initial = product ?? { ...emptyFields, barcode }
   const title = !product ? "Registrar producto" : product.status === "Pendiente" ? "Completar datos pendientes" : "Editar producto"
-  const fieldsToShow = real ? productFields.filter(field => field.key !== "stock") : productFields
-  const busy = state.kind === "validating" || state.kind === "saving"
-
-  async function register(formElement: HTMLFormElement, dryRun: boolean) {
-    if ((!dryRun && !access) || inFlight.current || state.kind === "saved") return
-    inFlight.current = true
-    setState({ kind: "validating" })
-    try {
-      const form = new FormData(formElement)
-      const barcodeKind = form.get("barcodeKind")
-      if (barcodeKind !== "gtin" && barcodeKind !== "internal") {
-        setState({ kind: "error", message: "Selecciona el tipo de código." })
-        return
-      }
-      const validation = validateRegistration(readProductFields(form), barcodeKind)
-      if (!validation.ok) {
-        setState({ kind: "error", message: validation.error.message })
-        return
-      }
-      if (dryRun || !access) {
-        setState({ kind: "valid", message: "Los datos pasaron la validación local." })
-        return
-      }
-      setState({ kind: "saving" })
-      const result = await access.save(validation.request)
-      if (!result.ok) {
-        setState({ kind: result.error.kind === "duplicate" ? "duplicate" : "error", message: result.error.message })
-        return
-      }
-      setState({ kind: "saved", message: "Producto guardado." })
-      try {
-        await access.refreshCatalog(result.productId)
-      } catch {
-        setState({ kind: "saved", message: "Producto guardado. No se pudo actualizar el catálogo." })
-      }
-    } catch {
-      setState({ kind: "error", message: connectionError().error.message })
-    } finally {
-      inFlight.current = false
-    }
-  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (props.mode === "real") {
-      void register(event.currentTarget, false)
-      return
-    }
     const fields = readProductFields(new FormData(event.currentTarget))
     if (productFields.some(field => "required" in field && !fields[field.key])) {
       setError("Completa los campos obligatorios.")
@@ -96,48 +34,34 @@ export function ProductForm(props: ProductFormProps) {
       setError("Ingresa una cantidad entera de stock entre 0 y 2 147 483 647.")
       return
     }
-    setError(props.onSave(fields) ?? "")
+    setError(onSave(fields) ?? "")
   }
 
+
   return (
-    <ProductDialog title={real ? "Registrar producto en Supabase" : title}
-      onClose={() => { if (!inFlight.current || state.kind === "saved") onClose() }}>
-      <form onSubmit={submit} onChange={() => { if (real && !inFlight.current && state.kind !== "saved") setState({ kind: "idle" }) }} className="space-y-5">
-        {real && <p role="status" className="rounded-lg bg-rose-50 p-3 text-sm text-[#a71037]">Supabase no devolvió un producto visible con ese código. La consulta solo incluye registros que tu sesión puede ver.</p>}
-        {!real && <p className="text-sm text-zinc-600">Los cambios DEMO se conservan mientras esta pantalla esté abierta.</p>}
-        {real && !access && <p className="text-sm text-zinc-600">Puedes completar y validar los datos. El guardado real está deshabilitado.</p>}
-        <fieldset disabled={busy || state.kind === "saved"} className="grid min-w-0 gap-4 sm:grid-cols-2">
-          {fieldsToShow.map(field => (
+    <ProductDialog title={title} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-5">
+        <p className="text-sm text-zinc-600">Los cambios DEMO se conservan mientras esta pantalla esté abierta.</p>
+        <fieldset className="grid min-w-0 gap-4 sm:grid-cols-2">
+          {productFields.map(field => (
             <label key={field.key} className={field.key === "description" ? "sm:col-span-2" : undefined}>
               <span className="mb-1 block text-sm font-medium">{field.label}{"required" in field ? " *" : ""}</span>
               {field.key === "description"
                 ? <textarea name={field.key} defaultValue={initial[field.key]} className={fieldClass} rows={3} />
-                : <input name={field.key} defaultValue={initial[field.key]} className={fieldClass} required={"required" in field} readOnly={real && field.key === "barcode"} inputMode={"mode" in field ? field.mode : undefined} />}
+                : <input name={field.key} defaultValue={initial[field.key]} className={fieldClass} required={"required" in field} inputMode={"mode" in field ? field.mode : undefined} />}
             </label>
           ))}
-          {real && <label className="sm:col-span-2">
-            <span className="mb-1 block text-sm font-medium">Tipo de código</span>
-            <select name="barcodeKind" className={fieldClass} defaultValue={canonicalGtin(barcode) ? "gtin" : ""}>
-              <option value="" disabled>Selecciona el tipo de código</option>
-              <option value="internal">Código interno</option>
-              <option value="gtin">GTIN confirmado (UPC-A o EAN-13)</option>
-            </select>
-          </label>}
         </fieldset>
         {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-[#a71037]">{error}</p>}
-        {busy && <p role="status" className="text-sm text-zinc-600">{state.kind === "validating" ? "Validando datos…" : "Guardando producto…"}</p>}
-        {"message" in state && <p role={state.kind === "error" || state.kind === "duplicate" ? "alert" : "status"} className="rounded-lg bg-zinc-50 p-3 text-sm">{state.message}</p>}
         <div className="flex flex-wrap justify-end gap-2">
-          <button type="button" disabled={busy} onClick={onClose} className={secondaryButton}>{state.kind === "saved" ? "Cerrar" : "Cancelar"}</button>
-          {real && <button type="button" disabled={busy || state.kind === "saved"} onClick={event => {
-            if (event.currentTarget.form) void register(event.currentTarget.form, true)
-          }} className={secondaryButton}>Validar datos</button>}
-          <button type="submit" disabled={real && (!access || busy || state.kind === "saved")} className={`${primaryButton} disabled:opacity-50`}>{real ? "Guardar producto" : "Guardar en DEMO"}</button>
+          <button type="button" onClick={onClose} className={secondaryButton}>Cancelar</button>
+          <button type="submit" className={primaryButton}>Guardar en DEMO</button>
         </div>
       </form>
     </ProductDialog>
   )
 }
+
 export function ProductDetails({ product, onClose }: { product: Product; onClose: () => void }) {
   return (
     <ProductDialog title="Ver detalles" onClose={onClose}>

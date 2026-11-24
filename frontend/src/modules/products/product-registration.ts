@@ -50,8 +50,8 @@ export function registrationBarcodeKey(barcode: string, kind: BarcodeKind): stri
   return gtin ? `gtin:${gtin}` : null
 }
 
-export function validateRegistration(fields: RegistrationFields, barcodeKind: BarcodeKind) {
-  const { name, barcode, sku, category, price, costPrice, description } = fields
+export function validateRegistrationDraft(fields: Omit<RegistrationFields, "costPrice">, barcodeKind: BarcodeKind) {
+  const { name, barcode, sku, category, price, description } = fields
   const invalid = (message: string) => ({ ok: false, error: { kind: "validation", message } } as const)
   if (!name.trim()) return invalid("Ingresa el nombre del producto.")
   if (!/^\S{1,128}$/.test(barcode)) return invalid("Ingresa un código de hasta 128 caracteres sin espacios internos.")
@@ -62,16 +62,27 @@ export function validateRegistration(fields: RegistrationFields, barcodeKind: Ba
     return invalid("Este código tiene un dígito verificador UPC-A o EAN-13 válido. Regístralo como GTIN.")
   }
 
-  const decimal = (value: string) => value.trim().replace(",", ".")
-  if (![price, costPrice].every(value => /^\d{1,8}(\.\d{1,2})?$/.test(decimal(value)))) {
-    return invalid("Ingresa precio y costo con hasta ocho enteros y dos decimales.")
-  }
+  const salePrice = decimal(price)
+  if (!validMoney(salePrice)) return invalid("Ingresa un precio con hasta ocho enteros y dos decimales.")
 
-  const request: RegisterProductRequest = {
+  const request: Omit<RegisterProductRequest, "costPrice"> = {
     name: name.trim(), barcode, barcodeKind, sku: sku || null, category: category.trim(),
-    price: decimal(price), costPrice: decimal(costPrice), description: description.trim() || null,
+    price: salePrice, description: description.trim() || null,
   }
   return { ok: true, request } as const
+}
+
+const decimal = (value: string) => value.trim().replace(",", ".")
+const validMoney = (value: string) => /^\d{1,8}(\.\d{1,2})?$/.test(value)
+
+export function validateRegistration(fields: RegistrationFields, barcodeKind: BarcodeKind) {
+  const draft = validateRegistrationDraft(fields, barcodeKind)
+  if (!draft.ok) return draft
+  const costPrice = decimal(fields.costPrice)
+  if (!validMoney(costPrice)) {
+    return { ok: false, error: { kind: "validation", message: "Ingresa un costo con hasta ocho enteros y dos decimales." } } as const
+  }
+  return { ok: true, request: { ...draft.request, costPrice } } as const
 }
 
 type RegistrationRpc = (

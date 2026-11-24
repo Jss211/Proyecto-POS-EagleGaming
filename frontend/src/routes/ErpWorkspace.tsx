@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react"
+import { lazy, Suspense, useEffect, useState } from "react"
 import { Construction } from "lucide-react"
 import ErpLayout, { type ErpAccount } from "@/components/layout/ErpLayout"
 import DashboardPage from "@/modules/dashboard/DashboardPage"
-import SalesPage from "@/modules/sales/SalesPage"
+import RealSalesPage from "@/modules/sales/RealSalesPage"
 import BillingPage from "@/modules/billing/BillingPage"
 import ProductsPage from "@/modules/products/ProductsPage"
 import InventoryPage from "@/modules/inventory/InventoryPage"
 import { loadBillingStore } from "@/modules/billing/billing-demo"
 import { erpModules } from "./erp-navigation"
+
+const DemoSalesPage = import.meta.env.DEV ? lazy(() => import("@/modules/sales/SalesPage")) : null
 
 function currentModuleId() {
   return window.location.hash.replace(/^#\/?/, "").replace(/\/$/, "") || "dashboard"
@@ -38,7 +40,7 @@ export default function ErpWorkspace({ account }: { account?: ErpAccount }) {
     {moduleId === "dashboard" ? (
       <DashboardPage />
     ) : moduleId === "ventas" ? (
-      <SalesPage company={company} />
+      DemoSalesPage && !account ? <Suspense fallback={<p role="status">Cargando vista de desarrollo…</p>}><DemoSalesPage company={company} /></Suspense> : <RealSalesPage key={account?.sessionIdentity} accountEmail={account?.email} sessionIdentity={account?.sessionIdentity} />
     ) : moduleId === "productos" ? (
       <ProductsPage key={account?.email} accountEmail={account?.email} demo={import.meta.env.DEV && !account} />
     ) : moduleId === "inventario" ? (

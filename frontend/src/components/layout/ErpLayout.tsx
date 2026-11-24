@@ -5,6 +5,7 @@ import { navigationGroups, type ErpModule } from "@/routes/erp-navigation"
 import { initialOpenGroups, sidebarStorageKey, toggleOpenGroup } from "./sidebar-state"
 
 export interface ErpAccount {
+  sessionIdentity: string
   email: string
   onSignOut: () => Promise<void>
 }

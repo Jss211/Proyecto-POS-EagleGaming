@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase"
+import { sessionIdentity } from "@/lib/session-identity"
 import { canonicalGtin } from "./product-registration"
 
 export type CatalogProduct = {
@@ -12,13 +13,14 @@ export type CatalogProduct = {
   isActive: boolean | null
 }
 
+export type StockCatalogProduct = CatalogProduct & { stock: number | null }
+
 export type BarcodeResult =
-  | { kind: "found"; product: CatalogProduct }
+  | { kind: "found"; product: StockCatalogProduct }
   | { kind: "missing" }
   | { kind: "error"; message: string }
 
-export type CatalogListingProduct = CatalogProduct & {
-  stock: number | null
+export type CatalogListingProduct = StockCatalogProduct & {
   minStock: number | null
   createdAt: string
   updatedAt: string
@@ -34,11 +36,12 @@ export async function readCatalogProduct(id: string): Promise<CatalogListingProd
   return data
 }
 
-export async function readVisibleCatalog(email: string, signal: AbortSignal) {
+export async function readVisibleCatalog(email: string, signal: AbortSignal, forSales = false, expectedSession?: string) {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession()
   signal.throwIfAborted()
   if (sessionError) throw new Error("No se pudo comprobar la sesión. Revisa tu conexión e inténtalo de nuevo.")
-  if (!session || (session.user.email ?? "Correo no disponible") !== email) {
+  if (!session || (session.user.email ?? "Correo no disponible") !== email ||
+      (expectedSession !== undefined && sessionIdentity(session) !== expectedSession)) {
     throw new Error("Inicia sesión de nuevo para consultar el catálogo de Supabase.")
   }
 
@@ -48,9 +51,10 @@ export async function readVisibleCatalog(email: string, signal: AbortSignal) {
   // Continue to the end of the visible rows, even if the API caps a batch.
   while (true) {
     signal.throwIfAborted()
-    const query = supabase.from("products").select(catalogColumns).order("id").limit(catalogBatchSize)
+    const query = supabase.schema("public").from("products").select(catalogColumns).order("id").limit(catalogBatchSize)
       .setHeader("Authorization", `Bearer ${session.access_token}`)
-    const { data, error, status } = await (cursor === undefined ? query : query.gt("id", cursor))
+    const visible = forSales ? query.eq("isActive", true).gt("stock", 0) : query
+    const { data, error, status } = await (cursor === undefined ? visible : visible.gt("id", cursor))
       .abortSignal(signal).overrideTypes<CatalogListingProduct[]>()
 
     if (error) {
@@ -66,24 +70,25 @@ export async function readVisibleCatalog(email: string, signal: AbortSignal) {
   }
 }
 
-export async function lookupBarcode(barcode: string, signal: AbortSignal): Promise<BarcodeResult> {
+export async function lookupBarcode(barcode: string, signal: AbortSignal, expectedSession?: string): Promise<BarcodeResult> {
   const { data: { session }, error: sessionError } = await supabase.auth.getSession()
   if (signal.aborted) throw signal.reason
   if (sessionError) {
     return { kind: "error", message: "No se pudo verificar la sesión. Revisa tu conexión e inténtalo de nuevo." }
   }
-  if (!session) {
+  if (!session || (expectedSession !== undefined && sessionIdentity(session) !== expectedSession)) {
     return { kind: "error", message: "Inicia sesión para consultar el catálogo en Supabase." }
   }
 
   const gtin = canonicalGtin(barcode)
   const equivalent = gtin && (barcode.length === 12 ? `0${barcode}` : barcode.startsWith("0") ? barcode.slice(1) : null)
-  const query = supabase.from("products").select(scanColumns)
+  const query = supabase.schema("public").from("products").select(`${scanColumns},stock`)
+    .setHeader("Authorization", `Bearer ${session.access_token}`)
   const { data, error, status } = await (equivalent
     ? query.in("barcode", [barcode, equivalent])
     : query.eq("barcode", barcode))
     .abortSignal(signal)
-    .maybeSingle<CatalogProduct>()
+    .maybeSingle<StockCatalogProduct>()
 
   if (error) {
     if (status === 401 || status === 403 || error.code === "42501") {

@@ -1,6 +1,6 @@
-import { calculateTotals, cashPayment, defaultQuoteExpiry, paymentMethods, salesDateInLima, validSalesDate, type CartSummary, type PaymentMethod } from "./sales-model"
+import { calculateTotals, cashPayment, defaultQuoteExpiry, paymentMethods, salesDateInLima, stockAvailabilityError, validSalesDate, type CartSummary, type PaymentMethod } from "./sales-model"
 import { snapshotCart, type DemoQuote, type DemoSale, type DemoStore, type RecordLine } from "./sales-records"
-import { deriveDemoStock, stockAvailabilityError } from "./sales-stock"
+import { deriveDemoStock } from "./sales-stock"
 
 export const demoStorageKey = "eaglegaming.sales-demo.v1"
 type DemoStorage = Pick<Storage, "getItem" | "setItem">

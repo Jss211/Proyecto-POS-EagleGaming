@@ -10,14 +10,16 @@ import {
   validateRecoveryLink,
   updateRecoveredPassword,
 } from "@/lib/supabase"
-import type { User } from "@supabase/supabase-js"
+import type { Session } from "@supabase/supabase-js"
+import { sessionIdentity } from "@/lib/session-identity"
 import type { EntryRoute } from "@/lib/entry-route"
 
 const ErpWorkspace = lazy(() => import("@/routes/ErpWorkspace"))
 
 export function App({ route }: { route: EntryRoute }) {
   const isPasswordRecoveryPage = route === "recovery"
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const currentUser = session?.user
   const [loading, setLoading] = useState(true)
   const [sessionError, setSessionError] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(false)
@@ -52,7 +54,7 @@ export function App({ route }: { route: EntryRoute }) {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!active) return
       authRevision += 1
-      setCurrentUser(session?.user ?? null)
+      setSession(session)
       setSessionError(false)
       setLoading(false)
     })
@@ -60,12 +62,12 @@ export function App({ route }: { route: EntryRoute }) {
     const initialRevision = authRevision
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (!active || authRevision !== initialRevision) return
-      setCurrentUser(error ? null : session?.user ?? null)
+      setSession(error ? null : session)
       setSessionError(Boolean(error))
       setLoading(false)
     }).catch(() => {
       if (!active || authRevision !== initialRevision) return
-      setCurrentUser(null)
+      setSession(null)
       setSessionError(true)
       setLoading(false)
     })
@@ -88,7 +90,7 @@ export function App({ route }: { route: EntryRoute }) {
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
-    setCurrentUser(null)
+    setSession(null)
   }
 
   if (!isPasswordRecoveryPage && (loading || needsRedirect)) {
@@ -102,9 +104,9 @@ export function App({ route }: { route: EntryRoute }) {
     )
   }
 
-  if (currentUser && isErpRoute) {
+  if (session && currentUser && isErpRoute) {
     return <Suspense fallback={<p role="status" className="p-8 text-sm">Cargando EagleGaming ERP…</p>}>
-      <ErpWorkspace account={{ email: currentUser.email ?? "Correo no disponible", onSignOut: handleSignOut }} />
+      <ErpWorkspace account={{ sessionIdentity: sessionIdentity(session), email: currentUser.email ?? "Correo no disponible", onSignOut: handleSignOut }} />
     </Suspense>
   }
 

@@ -4,23 +4,25 @@ import SalesCatalog from "./SalesCatalog"
 import SalesCart from "./SalesCart"
 import SalesProductDetails from "./SalesProductDetails"
 import { filterSalesProducts } from "./sales-model"
-import type { DemoProduct } from "./sales-demo"
+import type { SalesProduct } from "./sales-product"
 import type useSalesCart from "./useSalesCart"
 
-export default function SalesWorkspace({ draft, onSubmit, cartId, actionLabel, actionNote }: { draft: ReturnType<typeof useSalesCart>; onSubmit: () => void; cartId?: string; actionLabel?: string; actionNote?: string }) {
+export default function SalesWorkspace({ draft, onSubmit, cartId, actionLabel, actionNote, demo = true }: { draft: ReturnType<typeof useSalesCart>; onSubmit?: () => void; cartId?: string; actionLabel?: string; actionNote?: string; demo?: boolean }) {
   const [query, setQuery] = useState("")
-  const [category, setCategory] = useState("Todas")
+  const [category, setCategory] = useState("")
+  const categories = [...new Set(draft.products.map(item => item.category))].sort((a, b) => a.localeCompare(b, "es"))
+  const selectedCategory = categories.includes(category) ? category : ""
   const [productId, setProductId] = useState<string | null>(null)
   const product = draft.products.find(product => product.id === productId)
-  const showDetails = (product: DemoProduct) => setProductId(product.id)
+  const showDetails = (product: SalesProduct) => setProductId(product.id)
   const [message, setMessage] = useState("")
   const [scanNotice, setScanNotice] = useState<{ name: string; barcode: string } | null>(null)
 
-  const add = (product: DemoProduct) => {
+  const add = (product: SalesProduct) => {
     const quantity = draft.items.find(item => item.productId === product.id)?.quantity ?? 0
     if (quantity >= product.available) return
     draft.action({ type: "add", productId: product.id })
-    setMessage(`${product.name}: ${quantity + 1} unidades en la selección DEMO.`)
+    setMessage(`${product.name}: ${quantity + 1} unidades en el carrito.`)
   }
 
   const handleBarcodeScan = (rawCode: string) => {
@@ -31,7 +33,7 @@ export default function SalesWorkspace({ draft, onSubmit, cartId, actionLabel, a
     )
     if (match) {
       add(match)
-      setCategory("Todas")
+      setCategory("")
       setQuery("")
       setScanNotice({ name: match.name, barcode: match.barcode })
       window.setTimeout(() => setScanNotice(null), 3500)
@@ -42,6 +44,7 @@ export default function SalesWorkspace({ draft, onSubmit, cartId, actionLabel, a
 
   // Global barcode listener for USB scanner guns
   useEffect(() => {
+    if (!demo) return
     let buffer = ""
     let lastKeyTime = Date.now()
 
@@ -74,7 +77,7 @@ export default function SalesWorkspace({ draft, onSubmit, cartId, actionLabel, a
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [draft.products, productId])
+  }, [demo, draft.products, draft.items, productId])
 
   return <>
     <p role="status" className="sr-only">{message}</p>
@@ -95,9 +98,9 @@ export default function SalesWorkspace({ draft, onSubmit, cartId, actionLabel, a
       </div>
     )}
     <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <SalesCatalog products={filterSalesProducts(query, category, draft.products)} cart={draft.items} query={query} category={category} onQueryChange={setQuery} onCategoryChange={setCategory} onAdd={add} onDetails={showDetails} onBarcodeScan={handleBarcodeScan} />
-      <SalesCart summary={draft.summary} discount={draft.discount} onDiscountChange={draft.setDiscount} onAction={draft.action} onClear={draft.clear} onCheckout={onSubmit} onDetails={showDetails} canClear={draft.items.length > 0} cartId={cartId} actionLabel={actionLabel} actionNote={actionNote} />
+      <SalesCatalog demo={demo} categories={categories} products={filterSalesProducts(query, selectedCategory, draft.products)} cart={draft.items} query={query} category={selectedCategory} onQueryChange={setQuery} onCategoryChange={setCategory} onAdd={add} onDetails={showDetails} onBarcodeScan={demo ? handleBarcodeScan : undefined} />
+      <SalesCart demo={demo} summary={draft.summary} discount={draft.discount} onDiscountChange={draft.setDiscount} onAction={draft.action} onClear={draft.clear} onCheckout={onSubmit} onDetails={showDetails} canClear={draft.items.length > 0} cartId={cartId} actionLabel={actionLabel} actionNote={actionNote} />
     </div>
-    {product && <SalesProductDetails product={product} quantity={draft.items.find(item => item.productId === product.id)?.quantity ?? 0} onAdd={() => add(product)} onClose={() => setProductId(null)} />}
+    {product && <SalesProductDetails demo={demo} product={product} quantity={draft.items.find(item => item.productId === product.id)?.quantity ?? 0} onAdd={() => add(product)} onClose={() => setProductId(null)} />}
   </>
 }

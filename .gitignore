@@ -24,3 +24,12 @@ backend/.env.*
 .DS_Store
 *.local
 .vscode/
+
+# Respaldos, extracciones con datos y archivo local de documentación
+/.archivo-local/
+*.dump
+*.pgdump
+**/revision-respaldo.sql
+**/restauracion-eaglegaming-aplicacion.sql
+**/auth-saneado-eaglegaming.sql
+**/auth-extraccion-restringida.sql

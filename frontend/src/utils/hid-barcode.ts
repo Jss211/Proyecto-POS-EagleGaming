@@ -7,8 +7,9 @@ export function listenForHidBarcode(onRead: (barcode: string) => void, target: W
   const reset = () => { buffer = ""; overflow = false; lastKeyAt = -Infinity }
 
   function onKeyDown(event: KeyboardEvent) {
+    if (event.repeat) return
     const element = event.target
-    if (event.defaultPrevented || event.isComposing || event.repeat || event.ctrlKey || event.altKey || event.metaKey ||
+    if (event.defaultPrevented || event.isComposing || event.ctrlKey || event.altKey || event.metaKey ||
         (element instanceof Element && element.closest(blockedTarget)) ||
         target.document.querySelector("dialog[open], [role=dialog][aria-modal=true]")) {
       reset()
