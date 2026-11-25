@@ -1,5 +1,7 @@
 import { demoActivities, demoCustomers, demoProducts, demoSales, type DashboardSale } from "./dashboard-demo"
+import { todayInLima, shiftDate, shiftMonth } from "./dashboard-dates"
 
+export { todayInLima, shiftDate, shiftMonth }
 export type Period = "week" | "month" | "year"
 export interface DateRange { start: string; end: string }
 export const currency = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" })
@@ -7,21 +9,6 @@ export const percent = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1
 export const formatDateTime = (value: string) => new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", dateStyle: "short", timeStyle: "short" }).format(new Date(value))
 export const money = (cents: number) => currency.format(cents / 100)
 
-export function todayInLima(now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now)
-  const part = (type: string) => parts.find(item => item.type === type)?.value
-  return `${part("year")}-${part("month")}-${part("day")}`
-}
-export function shiftDate(value: string, days: number) {
-  const date = new Date(`${value}T12:00:00Z`)
-  date.setUTCDate(date.getUTCDate() + days)
-  return date.toISOString().slice(0, 10)
-}
-export function shiftMonth(value: string, months: number) {
-  const date = new Date(value.slice(0, 7) + "-01T12:00:00Z")
-  date.setUTCMonth(date.getUTCMonth() + months)
-  return date.toISOString().slice(0, 10)
-}
 export function periodRange(period: Period, today: string): DateRange {
   if (period === "week") {
     const weekday = new Date(`${today}T12:00:00Z`).getUTCDay()
